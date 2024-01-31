@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using TerraFX.Interop.Vulkan;
 using Veldrid.Android;
+#if !EXCLUDE_METAL_BACKEND
 using Veldrid.MetalBindings;
+#endif
 using static Veldrid.Vulkan.VulkanUtil;
 
 namespace Veldrid.Vulkan
@@ -56,6 +58,7 @@ namespace Veldrid.Vulkan
                     ThrowIfMissing(KHR_ANDROID_SURFACE_EXTENSION_NAME);
                     return CreateAndroidSurface(GetInstanceProcAddr(instance, "vkCreateAndroidSurfaceKHR"), instance, aWindowSource.ANativeWindow);
 
+#if !EXCLUDE_METAL_BACKEND
                 case NSWindowSwapchainSource nsWindowSource:
                     if (instanceExtensions.Contains(EXT_METAL_SURFACE_EXTENSION_NAME))
                     {
@@ -91,7 +94,7 @@ namespace Veldrid.Vulkan
                     }
                     throw new VeldridException($"Neither macOS surface extension was available: " +
                         $"{EXT_METAL_SURFACE_EXTENSION_NAME}, {MVK_IOS_SURFACE_EXTENSION_NAME}");
-
+#endif
                 default:
                     throw new VeldridException($"The provided SwapchainSource cannot be used to create a Vulkan surface.");
             }
@@ -159,6 +162,7 @@ namespace Veldrid.Vulkan
             return surface;
         }
 
+#if !EXCLUDE_METAL_BACKEND
         private static unsafe VkSurfaceKHR CreateNSWindowSurfaceExt(IntPtr ext, VkInstance instance, NSWindowSwapchainSource nsWindowSource)
         {
             NSWindow nswindow = new(nsWindowSource.NSWindow);
@@ -263,5 +267,6 @@ namespace Veldrid.Vulkan
             CheckResult(result);
             return surface;
         }
+#endif
     }
 }
