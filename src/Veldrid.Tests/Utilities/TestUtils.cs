@@ -76,7 +76,11 @@ namespace Veldrid.Tests
 
         public static GraphicsDevice CreateD3D11Device()
         {
+#if !TEST_D3D11
+            return null;
+#else
             return GraphicsDevice.CreateD3D11(new GraphicsDeviceOptions(true));
+#endif
         }
 
         public static void CreateD3D11DeviceWithSwapchain(out Sdl2Window window, out GraphicsDevice gd)
@@ -151,12 +155,16 @@ namespace Veldrid.Tests
 
         public static GraphicsDevice CreateMetalDevice()
         {
+#if !TEST_METAL
+            return null;
+#else
             if (!GraphicsDevice.IsBackendSupported(GraphicsBackend.Metal))
             {
                 Console.WriteLine("Metal is not supported on this system.");
                 return null;
             }
             return GraphicsDevice.CreateMetal(new GraphicsDeviceOptions(true, null, false, ResourceBindingModel.Improved));
+#endif
         }
 
         public static void CreateMetalDeviceWithSwapchain(out Sdl2Window window, out GraphicsDevice gd)

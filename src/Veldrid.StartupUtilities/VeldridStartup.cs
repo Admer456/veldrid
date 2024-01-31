@@ -37,11 +37,12 @@ namespace Veldrid.StartupUtilities
             out GraphicsDevice gd)
         {
             Sdl2Native.SDL_Init(SDLInitFlags.Video);
+#if !EXCLUDE_OPENGL_BACKEND
             if (preferredBackend == GraphicsBackend.OpenGL || preferredBackend == GraphicsBackend.OpenGLES)
             {
                 SetSDLGLContextAttributes(deviceOptions, preferredBackend);
             }
-
+#endif
             window = CreateWindow(ref windowCI);
             gd = CreateGraphicsDevice(window, deviceOptions, preferredBackend);
         }
