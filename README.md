@@ -1,3 +1,16 @@
+# Elegy.Veldrid
+
+Specialised version of a [Veldrid](https://github.com/veldrid/veldrid) [fork](https://github.com/TechPizzaDev/veldrid) for [Elegy Engine](https://github.com/ElegyEngine). Major differences include:
+* OpenGL, Metal, and Direct3D are excluded, only Vulkan is used.
+* None other thus far!
+
+Plans for the near-ish future:
+* Add Vulkan 1.3 API extensions
+* OpenXR integration
+* Ray-tracing extensions?
+
+Original readme contents:
+
 # Veldrid
 
 Veldrid is a cross-platform, graphics API-agnostic rendering and compute library for .NET. It provides a powerful, unified interface to a system's GPU and includes more advanced features than any other .NET library. Unlike other platform- or vendor-specific technologies, Veldrid can be used to create high-performance 3D applications that are truly portable.
