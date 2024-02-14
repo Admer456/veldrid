@@ -1415,11 +1415,6 @@ namespace Veldrid.Vulkan
             return result == VkResult.VK_SUCCESS;
         }
 
-        public override Swapchain CreateSwapchainFromSource( in SwapchainDescription swapchainDescription )
-        {
-            return new VkSwapchain( this, swapchainDescription );
-        }
-
         internal static bool IsSupported()
         {
             return s_isSupported.Value;
