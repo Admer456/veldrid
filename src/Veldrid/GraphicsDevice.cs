@@ -237,6 +237,8 @@ namespace Veldrid
         /// <param name="fence">The <see cref="Fence"/> instance to reset.</param>
         public abstract void ResetFence(Fence fence);
 
+        public abstract Swapchain CreateSwapchainFromSource( in SwapchainDescription swapchainDescription );
+
         /// <summary>
         /// Swaps the buffers of the main swapchain and presents the rendered image to the screen.
         /// This is equivalent to passing <see cref="MainSwapchain"/> to <see cref="SwapBuffers(Swapchain)"/>.
