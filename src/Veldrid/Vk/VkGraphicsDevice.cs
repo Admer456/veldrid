@@ -24,6 +24,7 @@ namespace Veldrid.Vulkan
         private VkDeviceMemoryManager _memoryManager;
         private VkPhysicalDeviceProperties _physicalDeviceProperties;
         private VkPhysicalDeviceFeatures _physicalDeviceFeatures;
+        private VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR _barycentricCoordinateFeature = new();
         private VkPhysicalDeviceMemoryProperties _physicalDeviceMemProperties;
         private VkDevice _device;
         private uint _graphicsQueueIndex;
@@ -763,6 +764,7 @@ namespace Veldrid.Vulkan
             HashSet<string> requiredDeviceExtensions = new(options.DeviceExtensions ?? Array.Empty<string>());
 
             bool hasMemReqs2 = false;
+            bool hasBarycentricCoords = false;
             bool hasDedicatedAllocation = false;
             bool hasDriverProperties = false;
             IntPtr[] activeExtensions = new IntPtr[props.Length];
@@ -813,6 +815,11 @@ namespace Veldrid.Vulkan
                     {
                         requiredDeviceExtensions.Remove(extensionName);
                     }
+                    else if (extensionName == "VK_KHR_fragment_shader_barycentric" )
+                    {
+                        requiredDeviceExtensions.Remove(extensionName);
+                        hasBarycentricCoords = true;
+                    }
                     else if (requiredDeviceExtensions.Remove(extensionName))
                     {
                     }
@@ -849,6 +856,17 @@ namespace Veldrid.Vulkan
             }
             deviceCreateInfo.enabledLayerCount = layerNames.Count;
             deviceCreateInfo.ppEnabledLayerNames = (sbyte**)layerNames.Data;
+
+            if ( hasBarycentricCoords )
+            {
+                _barycentricCoordinateFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR;
+                _barycentricCoordinateFeature.fragmentShaderBarycentric = true;
+
+                fixed ( void* p = &_barycentricCoordinateFeature )
+                {
+                    deviceCreateInfo.pNext = p;
+                }
+            }
 
             fixed (IntPtr* activeExtensionsPtr = activeExtensions)
             {
