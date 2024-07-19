@@ -5,10 +5,16 @@ using Vortice.DXGI;
 
 namespace Veldrid.D3D11
 {
+    using DXStencilOperation = Vortice.Direct3D11.StencilOperation;
+    using DXMapMode = Vortice.Direct3D11.MapMode;
+    using DXPrimitiveTopology = Vortice.Direct3D.PrimitiveTopology;
+
     internal static class D3D11Formats
     {
-        internal static Format ToDxgiFormat(PixelFormat format, bool depthFormat)
+        internal static Format ToDxgiFormat(PixelFormat format, TextureUsage usage)
         {
+            bool depthFormat = FormatHelpers.IsDepthFormatPreferred(format, usage);
+
             switch (format)
             {
                 case PixelFormat.R8_UNorm:
@@ -125,11 +131,15 @@ namespace Veldrid.D3D11
                 case PixelFormat.BC7_UNorm_SRgb:
                     return Format.BC7_UNorm_SRgb;
 
+                case PixelFormat.D16_UNorm:
+                    return Format.R16_Typeless;
+                case PixelFormat.D16_UNorm_S8_UInt:
+                    throw new VeldridException($"{nameof(PixelFormat.D16_UNorm_S8_UInt)} is not supported on Direct3D 11.");
+                case PixelFormat.D32_Float:
+                    return Format.R32_Typeless;
                 case PixelFormat.D24_UNorm_S8_UInt:
-                    Debug.Assert(depthFormat);
                     return Format.R24G8_Typeless;
                 case PixelFormat.D32_Float_S8_UInt:
-                    Debug.Assert(depthFormat);
                     return Format.R32G8X24_Typeless;
 
                 case PixelFormat.R10_G10_B10_A2_UNorm:
@@ -142,10 +152,11 @@ namespace Veldrid.D3D11
                 case PixelFormat.ETC2_R8_G8_B8_UNorm:
                 case PixelFormat.ETC2_R8_G8_B8_A1_UNorm:
                 case PixelFormat.ETC2_R8_G8_B8_A8_UNorm:
-                    throw new VeldridException("ETC2 formats are not supported on Direct3D 11.");
+                    static Format Throw() => throw new VeldridException("ETC2 formats are not supported on Direct3D 11.");
+                    return Throw();
 
                 default:
-                    throw Illegal.Value<PixelFormat>();
+                    return Illegal.Value<PixelFormat, Format>();
             }
         }
 
@@ -354,7 +365,7 @@ namespace Veldrid.D3D11
                 BlendFactor.InverseDestinationColor => Blend.InverseDestinationColor,
                 BlendFactor.BlendFactor => Blend.BlendFactor,
                 BlendFactor.InverseBlendFactor => Blend.InverseBlendFactor,
-                _ => throw Illegal.Value<BlendFactor>(),
+                _ => Illegal.Value<BlendFactor, Blend>(),
             };
         }
 
@@ -364,23 +375,23 @@ namespace Veldrid.D3D11
             {
                 IndexFormat.UInt16 => Format.R16_UInt,
                 IndexFormat.UInt32 => Format.R32_UInt,
-                _ => throw Illegal.Value<IndexFormat>(),
+                _ => Illegal.Value<IndexFormat, Format>()
             };
         }
 
-        internal static Vortice.Direct3D11.StencilOperation VdToD3D11StencilOperation(StencilOperation op)
+        internal static DXStencilOperation VdToD3D11StencilOperation(StencilOperation op)
         {
             return op switch
             {
-                StencilOperation.Keep => Vortice.Direct3D11.StencilOperation.Keep,
-                StencilOperation.Zero => Vortice.Direct3D11.StencilOperation.Zero,
-                StencilOperation.Replace => Vortice.Direct3D11.StencilOperation.Replace,
-                StencilOperation.IncrementAndClamp => Vortice.Direct3D11.StencilOperation.IncrementSaturate,
-                StencilOperation.DecrementAndClamp => Vortice.Direct3D11.StencilOperation.DecrementSaturate,
-                StencilOperation.Invert => Vortice.Direct3D11.StencilOperation.Invert,
-                StencilOperation.IncrementAndWrap => Vortice.Direct3D11.StencilOperation.Increment,
-                StencilOperation.DecrementAndWrap => Vortice.Direct3D11.StencilOperation.Decrement,
-                _ => throw Illegal.Value<StencilOperation>(),
+                StencilOperation.Keep => DXStencilOperation.Keep,
+                StencilOperation.Zero => DXStencilOperation.Zero,
+                StencilOperation.Replace => DXStencilOperation.Replace,
+                StencilOperation.IncrementAndClamp => DXStencilOperation.IncrementSaturate,
+                StencilOperation.DecrementAndClamp => DXStencilOperation.DecrementSaturate,
+                StencilOperation.Invert => DXStencilOperation.Invert,
+                StencilOperation.IncrementAndWrap => DXStencilOperation.Increment,
+                StencilOperation.DecrementAndWrap => DXStencilOperation.Decrement,
+                _ => Illegal.Value<StencilOperation, DXStencilOperation>(),
             };
         }
 
@@ -392,14 +403,14 @@ namespace Veldrid.D3D11
                 Format.R8_SNorm => PixelFormat.R8_SNorm,
                 Format.R8_UInt => PixelFormat.R8_UInt,
                 Format.R8_SInt => PixelFormat.R8_SInt,
-                Format.R16_UNorm or Format.D16_UNorm => PixelFormat.R16_UNorm,
+                Format.R16_UNorm => PixelFormat.R16_UNorm,
                 Format.R16_SNorm => PixelFormat.R16_SNorm,
                 Format.R16_UInt => PixelFormat.R16_UInt,
                 Format.R16_SInt => PixelFormat.R16_SInt,
                 Format.R16_Float => PixelFormat.R16_Float,
                 Format.R32_UInt => PixelFormat.R32_UInt,
                 Format.R32_SInt => PixelFormat.R32_SInt,
-                Format.R32_Float or Format.D32_Float => PixelFormat.R32_Float,
+                Format.R32_Float => PixelFormat.R32_Float,
                 Format.R8G8_UNorm => PixelFormat.R8_G8_UNorm,
                 Format.R8G8_SNorm => PixelFormat.R8_G8_SNorm,
                 Format.R8G8_UInt => PixelFormat.R8_G8_UInt,
@@ -435,12 +446,14 @@ namespace Veldrid.D3D11
                 Format.BC5_UNorm => PixelFormat.BC5_UNorm,
                 Format.BC5_SNorm => PixelFormat.BC5_SNorm,
                 Format.BC7_UNorm => PixelFormat.BC7_UNorm,
+                Format.D16_UNorm => PixelFormat.D16_UNorm,
+                Format.D32_Float => PixelFormat.D32_Float,
                 Format.D24_UNorm_S8_UInt => PixelFormat.D24_UNorm_S8_UInt,
                 Format.D32_Float_S8X24_UInt => PixelFormat.D32_Float_S8_UInt,
                 Format.R10G10B10A2_UInt => PixelFormat.R10_G10_B10_A2_UInt,
                 Format.R10G10B10A2_UNorm => PixelFormat.R10_G10_B10_A2_UNorm,
                 Format.R11G11B10_Float => PixelFormat.R11_G11_B10_Float,
-                _ => throw Illegal.Value<PixelFormat>(),
+                _ => Illegal.Value<Format, PixelFormat>(),
             };
         }
 
@@ -453,7 +466,7 @@ namespace Veldrid.D3D11
                 BlendFunction.ReverseSubtract => BlendOperation.ReverseSubtract,
                 BlendFunction.Minimum => BlendOperation.Min,
                 BlendFunction.Maximum => BlendOperation.Max,
-                _ => throw Illegal.Value<BlendFunction>(),
+                _ => Illegal.Value<BlendFunction, BlendOperation>(),
             };
         }
 
@@ -488,7 +501,7 @@ namespace Veldrid.D3D11
                     SamplerFilter.MinLinear_MagLinear_MipPoint => Filter.ComparisonMinMagLinearMipPoint,
                     SamplerFilter.MinLinear_MagLinear_MipLinear => Filter.ComparisonMinMagMipLinear,
                     SamplerFilter.Anisotropic => Filter.ComparisonAnisotropic,
-                    _ => throw Illegal.Value<SamplerFilter>(),
+                    _ => Illegal.Value<SamplerFilter, Filter>(),
                 };
             }
             else
@@ -504,7 +517,7 @@ namespace Veldrid.D3D11
                     SamplerFilter.MinLinear_MagLinear_MipPoint => Filter.MinMagLinearMipPoint,
                     SamplerFilter.MinLinear_MagLinear_MipLinear => Filter.MinMagMipLinear,
                     SamplerFilter.Anisotropic => Filter.Anisotropic,
-                    _ => throw Illegal.Value<SamplerFilter>(),
+                    _ => Illegal.Value<SamplerFilter, Filter>(),
                 };
             }
         }
@@ -513,10 +526,10 @@ namespace Veldrid.D3D11
         {
             return mode switch
             {
-                MapMode.Read => Vortice.Direct3D11.MapMode.Read,
-                MapMode.Write => isDynamic ? Vortice.Direct3D11.MapMode.WriteDiscard : Vortice.Direct3D11.MapMode.Write,
-                MapMode.ReadWrite => Vortice.Direct3D11.MapMode.ReadWrite,
-                _ => throw Illegal.Value<MapMode>(),
+                MapMode.Read => DXMapMode.Read,
+                MapMode.Write => isDynamic ? DXMapMode.WriteDiscard : DXMapMode.Write,
+                MapMode.ReadWrite => DXMapMode.ReadWrite,
+                _ => Illegal.Value<MapMode, DXMapMode>(),
             };
         }
 
@@ -524,12 +537,12 @@ namespace Veldrid.D3D11
         {
             return primitiveTopology switch
             {
-                PrimitiveTopology.TriangleList => Vortice.Direct3D.PrimitiveTopology.TriangleList,
-                PrimitiveTopology.TriangleStrip => Vortice.Direct3D.PrimitiveTopology.TriangleStrip,
-                PrimitiveTopology.LineList => Vortice.Direct3D.PrimitiveTopology.LineList,
-                PrimitiveTopology.LineStrip => Vortice.Direct3D.PrimitiveTopology.LineStrip,
-                PrimitiveTopology.PointList => Vortice.Direct3D.PrimitiveTopology.PointList,
-                _ => throw Illegal.Value<PrimitiveTopology>(),
+                PrimitiveTopology.TriangleList => DXPrimitiveTopology.TriangleList,
+                PrimitiveTopology.TriangleStrip => DXPrimitiveTopology.TriangleStrip,
+                PrimitiveTopology.LineList => DXPrimitiveTopology.LineList,
+                PrimitiveTopology.LineStrip => DXPrimitiveTopology.LineStrip,
+                PrimitiveTopology.PointList => DXPrimitiveTopology.PointList,
+                _ => Illegal.Value<PrimitiveTopology, DXPrimitiveTopology>(),
             };
         }
 
@@ -539,7 +552,7 @@ namespace Veldrid.D3D11
             {
                 PolygonFillMode.Solid => FillMode.Solid,
                 PolygonFillMode.Wireframe => FillMode.Wireframe,
-                _ => throw Illegal.Value<PolygonFillMode>(),
+                _ => Illegal.Value<PolygonFillMode, FillMode>(),
             };
         }
 
@@ -550,7 +563,7 @@ namespace Veldrid.D3D11
                 FaceCullMode.Back => CullMode.Back,
                 FaceCullMode.Front => CullMode.Front,
                 FaceCullMode.None => CullMode.None,
-                _ => throw Illegal.Value<FaceCullMode>(),
+                _ => Illegal.Value<FaceCullMode, CullMode>(),
             };
         }
 
@@ -589,7 +602,7 @@ namespace Veldrid.D3D11
                 VertexElementFormat.Half1 => Format.R16_Float,
                 VertexElementFormat.Half2 => Format.R16G16_Float,
                 VertexElementFormat.Half4 => Format.R16G16B16A16_Float,
-                _ => throw Illegal.Value<VertexElementFormat>(),
+                _ => Illegal.Value<VertexElementFormat, Format>(),
             };
         }
 
@@ -605,7 +618,7 @@ namespace Veldrid.D3D11
                 ComparisonKind.NotEqual => ComparisonFunction.NotEqual,
                 ComparisonKind.GreaterEqual => ComparisonFunction.GreaterEqual,
                 ComparisonKind.Always => ComparisonFunction.Always,
-                _ => throw Illegal.Value<ComparisonKind>(),
+                _ => Illegal.Value<ComparisonKind, ComparisonFunction>(),
             };
         }
 
@@ -617,7 +630,7 @@ namespace Veldrid.D3D11
                 SamplerAddressMode.Mirror => TextureAddressMode.Mirror,
                 SamplerAddressMode.Clamp => TextureAddressMode.Clamp,
                 SamplerAddressMode.Border => TextureAddressMode.Border,
-                _ => throw Illegal.Value<SamplerAddressMode>(),
+                _ => Illegal.Value<SamplerAddressMode, TextureAddressMode>(),
             };
         }
 
@@ -625,12 +638,17 @@ namespace Veldrid.D3D11
         {
             return format switch
             {
-                PixelFormat.R32_Float => Format.D32_Float,
-                PixelFormat.R16_UNorm => Format.D16_UNorm,
+                PixelFormat.R32_Float or PixelFormat.D32_Float => Format.D32_Float,
+                PixelFormat.R16_UNorm or PixelFormat.D16_UNorm => Format.D16_UNorm,
                 PixelFormat.D24_UNorm_S8_UInt => Format.D24_UNorm_S8_UInt,
                 PixelFormat.D32_Float_S8_UInt => Format.D32_Float_S8X24_UInt,
-                _ => throw new VeldridException("Invalid depth texture format: " + format),
+                _ => Throw(),
             };
+
+            Format Throw()
+            {
+                throw new VeldridException("Invalid depth texture format: " + format);
+            }
         }
     }
 }

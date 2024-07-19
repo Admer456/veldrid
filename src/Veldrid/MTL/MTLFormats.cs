@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Veldrid.MetalBindings;
 
 namespace Veldrid.MTL
@@ -6,8 +8,10 @@ namespace Veldrid.MTL
     internal static class MTLFormats
     {
         [SuppressMessage("Style", "IDE0066:Convert switch statement to expression", Justification = "<Pending>")]
-        internal static MTLPixelFormat VdToMTLPixelFormat(PixelFormat format, bool depthFormat)
+        internal static MTLPixelFormat VdToMTLPixelFormat(PixelFormat format, TextureUsage usage)
         {
+            bool depthFormat = FormatHelpers.IsDepthFormatPreferred(format, usage);
+
             switch (format)
             {
                 case PixelFormat.R8_UNorm:
@@ -131,6 +135,12 @@ namespace Veldrid.MTL
                 case PixelFormat.ETC2_R8_G8_B8_A8_UNorm:
                     return MTLPixelFormat.EAC_RGBA8;
 
+                case PixelFormat.D16_UNorm:
+                    return MTLPixelFormat.Depth16Unorm;
+                case PixelFormat.D16_UNorm_S8_UInt:
+                    throw new VeldridException($"{nameof(PixelFormat.D16_UNorm_S8_UInt)} is not supported on Direct3D 11.");
+                case PixelFormat.D32_Float:
+                    return MTLPixelFormat.Depth32Float;
                 case PixelFormat.D24_UNorm_S8_UInt:
                     return MTLPixelFormat.Depth24Unorm_Stencil8;
                 case PixelFormat.D32_Float_S8_UInt:
@@ -144,7 +154,7 @@ namespace Veldrid.MTL
                     return MTLPixelFormat.RG11B10Float;
 
                 default:
-                    throw Illegal.Value<PixelFormat>();
+                    return Illegal.Value<PixelFormat, MTLPixelFormat>();
             }
         }
 
@@ -195,7 +205,7 @@ namespace Veldrid.MTL
             {
                 PolygonFillMode.Solid => MTLTriangleFillMode.Fill,
                 PolygonFillMode.Wireframe => MTLTriangleFillMode.Lines,
-                _ => throw Illegal.Value<PolygonFillMode>(),
+                _ => Illegal.Value<PolygonFillMode, MTLTriangleFillMode>(),
             };
         }
 
@@ -257,7 +267,11 @@ namespace Veldrid.MTL
                     mip = MTLSamplerMipFilter.Nearest;
                     break;
                 default:
-                    throw Illegal.Value<SamplerFilter>();
+                    Unsafe.SkipInit(out min);
+                    Unsafe.SkipInit(out mag);
+                    Unsafe.SkipInit(out mip);
+                    Illegal.Value<SamplerFilter>();
+                    break;
             }
         }
 
@@ -287,7 +301,7 @@ namespace Veldrid.MTL
                 case TextureType.Texture3D:
                     return MTLTextureType.Type3D;
                 default:
-                    throw Illegal.Value<TextureType>();
+                    return Illegal.Value<TextureType, MTLTextureType>();
             }
         }
 
@@ -307,7 +321,7 @@ namespace Veldrid.MTL
                 BlendFactor.InverseDestinationColor => MTLBlendFactor.OneMinusDestinationColor,
                 BlendFactor.BlendFactor => MTLBlendFactor.BlendColor,
                 BlendFactor.InverseBlendFactor => MTLBlendFactor.OneMinusBlendColor,
-                _ => throw Illegal.Value<BlendFactor>(),
+                _ => Illegal.Value<BlendFactor, MTLBlendFactor>(),
             };
         }
 
@@ -320,7 +334,7 @@ namespace Veldrid.MTL
                 BlendFunction.Minimum => MTLBlendOperation.Min,
                 BlendFunction.ReverseSubtract => MTLBlendOperation.ReverseSubtract,
                 BlendFunction.Subtract => MTLBlendOperation.Subtract,
-                _ => throw Illegal.Value<BlendFunction>(),
+                _ => Illegal.Value<BlendFunction, MTLBlendOperation>(),
             };
         }
 
@@ -360,9 +374,10 @@ namespace Veldrid.MTL
                 case ShaderConstantType.UInt64:
                 case ShaderConstantType.Int64:
                 case ShaderConstantType.Double:
-                    throw new VeldridException($"Metal does not support 64-bit shader constants.");
+                    static MTLDataType Throw() => throw new VeldridException($"Metal does not support 64-bit shader constants.");
+                    return Throw();
                 default:
-                    throw Illegal.Value<ShaderConstantType>();
+                    return Illegal.Value<ShaderConstantType, MTLDataType>();
             }
         }
 
@@ -378,7 +393,7 @@ namespace Veldrid.MTL
                 ComparisonKind.LessEqual => MTLCompareFunction.LessEqual,
                 ComparisonKind.Never => MTLCompareFunction.Never,
                 ComparisonKind.NotEqual => MTLCompareFunction.NotEqual,
-                _ => throw Illegal.Value<ComparisonKind>(),
+                _ => Illegal.Value<ComparisonKind, MTLCompareFunction>(),
             };
         }
 
@@ -389,7 +404,7 @@ namespace Veldrid.MTL
                 FaceCullMode.Front => MTLCullMode.Front,
                 FaceCullMode.Back => MTLCullMode.Back,
                 FaceCullMode.None => MTLCullMode.None,
-                _ => throw Illegal.Value<FaceCullMode>(),
+                _ => Illegal.Value<FaceCullMode, MTLCullMode>(),
             };
         }
 
@@ -400,7 +415,7 @@ namespace Veldrid.MTL
                 SamplerBorderColor.TransparentBlack => MTLSamplerBorderColor.TransparentBlack,
                 SamplerBorderColor.OpaqueBlack => MTLSamplerBorderColor.OpaqueBlack,
                 SamplerBorderColor.OpaqueWhite => MTLSamplerBorderColor.OpaqueWhite,
-                _ => throw Illegal.Value<SamplerBorderColor>(),
+                _ => Illegal.Value<SamplerBorderColor, MTLSamplerBorderColor>(),
             };
         }
 
@@ -412,7 +427,7 @@ namespace Veldrid.MTL
                 SamplerAddressMode.Clamp => MTLSamplerAddressMode.ClampToEdge,
                 SamplerAddressMode.Mirror => MTLSamplerAddressMode.MirrorRepeat,
                 SamplerAddressMode.Wrap => MTLSamplerAddressMode.Repeat,
-                _ => throw Illegal.Value<SamplerAddressMode>(),
+                _ => Illegal.Value<SamplerAddressMode, MTLSamplerAddressMode>(),
             };
         }
 
@@ -425,7 +440,7 @@ namespace Veldrid.MTL
                 PrimitiveTopology.TriangleList => MTLPrimitiveType.Triangle,
                 PrimitiveTopology.TriangleStrip => MTLPrimitiveType.TriangleStrip,
                 PrimitiveTopology.PointList => MTLPrimitiveType.Point,
-                _ => throw Illegal.Value<PrimitiveTopology>(),
+                _ => Illegal.Value<PrimitiveTopology, MTLPrimitiveType>(),
             };
         }
 
@@ -485,7 +500,7 @@ namespace Veldrid.MTL
                 VertexElementFormat.Half1 => MTLVertexFormat.half,
                 VertexElementFormat.Half2 => MTLVertexFormat.half2,
                 VertexElementFormat.Half4 => MTLVertexFormat.half4,
-                _ => throw Illegal.Value<VertexElementFormat>(),
+                _ => Illegal.Value<VertexElementFormat, MTLVertexFormat>(),
             };
         }
 
@@ -506,7 +521,7 @@ namespace Veldrid.MTL
                 StencilOperation.Invert => MTLStencilOperation.Invert,
                 StencilOperation.IncrementAndWrap => MTLStencilOperation.IncrementWrap,
                 StencilOperation.DecrementAndWrap => MTLStencilOperation.DecrementWrap,
-                _ => throw Illegal.Value<StencilOperation>(),
+                _ => Illegal.Value<StencilOperation, MTLStencilOperation>(),
             };
         }
 

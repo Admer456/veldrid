@@ -42,7 +42,7 @@ namespace Veldrid.NeoDemo
         float _midCascadeLimit = 300;
         float _farCascadeLimit;
 
-        public Scene(GraphicsDevice gd, Sdl2Window window, Sdl2ControllerTracker controller)
+        public Scene(GraphicsDevice gd, Sdl2Window window, Sdl2ControllerTracker? controller)
         {
             _camera = new Camera(gd, window, controller);
             _farCascadeLimit = _camera.FarDistance;
@@ -503,7 +503,7 @@ namespace Veldrid.NeoDemo
             RenderQueue renderQueue,
             List<CullRenderable> cullRenderableList,
             List<Renderable> renderableList,
-            Comparer<RenderItemIndex> comparer,
+            Comparer<RenderItemIndex>? comparer,
             bool threaded)
         {
             renderQueue.Clear();

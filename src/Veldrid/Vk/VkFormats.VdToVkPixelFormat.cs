@@ -1,4 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkFormat;
 
@@ -6,9 +6,10 @@ namespace Veldrid.Vulkan
 {
     internal static partial class VkFormats
     {
-        [SuppressMessage("Style", "IDE0066:Convert switch statement to expression", Justification = "<Pending>")]
-        internal static VkFormat VdToVkPixelFormat(PixelFormat format, bool toDepthFormat = false)
+        internal static VkFormat VdToVkPixelFormat(PixelFormat format, TextureUsage usage)
         {
+            bool toDepthFormat = FormatHelpers.IsDepthFormatPreferred(format, usage);
+
             switch (format)
             {
                 case PixelFormat.R8_UNorm:
@@ -134,6 +135,12 @@ namespace Veldrid.Vulkan
                 case PixelFormat.ETC2_R8_G8_B8_A8_UNorm:
                     return VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
 
+                case PixelFormat.D16_UNorm:
+                    return VK_FORMAT_D16_UNORM;
+                case PixelFormat.D16_UNorm_S8_UInt:
+                    return VK_FORMAT_D16_UNORM_S8_UINT;
+                case PixelFormat.D32_Float:
+                    return VK_FORMAT_D32_SFLOAT;
                 case PixelFormat.D32_Float_S8_UInt:
                     return VK_FORMAT_D32_SFLOAT_S8_UINT;
                 case PixelFormat.D24_UNorm_S8_UInt:

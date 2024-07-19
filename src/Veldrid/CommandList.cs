@@ -238,25 +238,26 @@ namespace Veldrid
             }
 
             ResourceLayout layout = _graphicsPipeline.ResourceLayouts[slot];
-            int pipelineLength = layout.Description.Elements.Length;
+            ResourceLayoutElementDescription[] pipelineElements = layout.Description.Elements;
             ResourceLayoutDescription layoutDesc = rs.Layout.Description;
-            int setLength = layoutDesc.Elements.Length;
-            if (pipelineLength != setLength)
+            ResourceLayoutElementDescription[] setElements = layoutDesc.Elements;
+
+            if (pipelineElements.Length != setElements.Length)
             {
-                void Throw()
+                void Throw(int setLength, int pipelineLength)
                 {
                     throw new VeldridException(
                         $"Failed to bind {nameof(ResourceSet)} to slot {slot}. " +
                         $"The number of resources in the {nameof(ResourceSet)} ({setLength}) does not " +
                         $"match the number expected by the active {nameof(Pipeline)} ({pipelineLength}).");
                 }
-                Throw();
+                Throw(setElements.Length, pipelineElements.Length);
             }
 
-            for (int i = 0; i < pipelineLength; i++)
+            for (int i = 0; i < pipelineElements.Length; i++)
             {
-                ResourceKind pipelineKind = layout.Description.Elements[i].Kind;
-                ResourceKind setKind = layoutDesc.Elements[i].Kind;
+                ResourceKind pipelineKind = pipelineElements[i].Kind;
+                ResourceKind setKind = setElements[i].Kind;
                 if (pipelineKind != setKind)
                 {
                     void Throw()
@@ -283,13 +284,14 @@ namespace Veldrid
             }
 
             int dynamicOffsetIndex = 0;
-            for (uint i = 0; i < layoutDesc.Elements.Length; i++)
+            for (uint i = 0; i < setElements.Length; i++)
             {
-                if ((layoutDesc.Elements[i].Options & ResourceLayoutElementOptions.DynamicBinding) != 0)
+                if ((setElements[i].Options & ResourceLayoutElementOptions.DynamicBinding) != 0)
                 {
-                    uint requiredAlignment = layoutDesc.Elements[i].Kind == ResourceKind.UniformBuffer
+                    uint requiredAlignment = setElements[i].Kind == ResourceKind.UniformBuffer
                         ? _uniformBufferAlignment
                         : _structuredBufferAlignment;
+
                     uint desiredOffset = dynamicOffsets[dynamicOffsetIndex];
                     dynamicOffsetIndex += 1;
                     DeviceBufferRange range = Util.GetBufferRange(rs.Resources[i], desiredOffset);
@@ -1511,6 +1513,7 @@ namespace Veldrid
         [Conditional("VALIDATE_USAGE")]
         private void ValidateIndexBuffer(uint indexCount)
         {
+#if VALIDATE_USAGE
             if (_indexBuffer == null)
             {
                 [DoesNotReturn]
@@ -1534,6 +1537,7 @@ namespace Veldrid
                 }
                 Throw();
             }
+#endif
         }
 
         [Conditional("VALIDATE_USAGE")]
@@ -1559,6 +1563,7 @@ namespace Veldrid
                 Throw();
             }
 
+#if VALIDATE_USAGE
             if (!_graphicsPipeline.GraphicsOutputDescription.Equals(_framebuffer.OutputDescription))
             {
                 static void Throw()
@@ -1569,6 +1574,7 @@ namespace Veldrid
                 }
                 Throw();
             }
+#endif
         }
 
         /// <summary>

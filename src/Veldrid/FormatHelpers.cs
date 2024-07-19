@@ -47,7 +47,7 @@ namespace Veldrid
                 case VertexElementFormat.Half4:
                     return 4;
                 default:
-                    throw Illegal.Value<VertexElementFormat>();
+                    return Illegal.Value<VertexElementFormat, int>();
             }
         }
 
@@ -61,21 +61,61 @@ namespace Veldrid
                 TextureSampleCount.Count8 => 8,
                 TextureSampleCount.Count16 => 16,
                 TextureSampleCount.Count32 => 32,
-                _ => throw Illegal.Value<TextureSampleCount>(),
+                TextureSampleCount.Count64 => 64,
+                _ => Illegal.Value<TextureSampleCount, uint>(),
             };
+        }
+
+        internal static bool IsExactStencilFormat(PixelFormat format)
+        {
+            return format == PixelFormat.D16_UNorm_S8_UInt
+                || format == PixelFormat.D24_UNorm_S8_UInt
+                || format == PixelFormat.D32_Float_S8_UInt;
         }
 
         internal static bool IsStencilFormat(PixelFormat format)
         {
-            return format == PixelFormat.D24_UNorm_S8_UInt || format == PixelFormat.D32_Float_S8_UInt;
+            return IsExactStencilFormat(format);
+        }
+
+        internal static bool IsExactDepthFormat(PixelFormat format)
+        {
+            return format == PixelFormat.D16_UNorm
+                || format == PixelFormat.D32_Float;
+        }
+
+        internal static bool IsDepthFormat(PixelFormat format)
+        {
+            return format == PixelFormat.R16_UNorm
+                || format == PixelFormat.R32_Float
+                || IsExactDepthFormat(format);
+        }
+
+        internal static bool IsExactDepthStencilFormat(PixelFormat format)
+        {
+            return IsExactDepthFormat(format) || IsExactStencilFormat(format);
         }
 
         internal static bool IsDepthStencilFormat(PixelFormat format)
         {
-            return format == PixelFormat.D32_Float_S8_UInt
-                || format == PixelFormat.D24_UNorm_S8_UInt
-                || format == PixelFormat.R16_UNorm
-                || format == PixelFormat.R32_Float;
+            return IsDepthFormat(format) || IsStencilFormat(format);
+        }
+
+        internal static bool IsDepthFormatPreferred(PixelFormat format, TextureUsage usage)
+        {
+            if ((usage & TextureUsage.DepthStencil) == TextureUsage.DepthStencil)
+            {
+                return true;
+            }
+
+            // TODO: could this still be useful?
+            //       maybe instead of forcing a depth format, it could be used for asserts?
+            // if ((usage & TextureUsage.Staging) == TextureUsage.Staging && IsDepthStencilFormat(format))
+            // {
+            //     return true;
+            // }
+
+            return false;
         }
 
         internal static bool IsCompressedFormat(PixelFormat format)
@@ -154,7 +194,7 @@ namespace Veldrid
                 case PixelFormat.ETC2_R8_G8_B8_A8_UNorm:
                     return 16;
                 default:
-                    throw Illegal.Value<PixelFormat>();
+                    return Illegal.Value<PixelFormat, uint>();
             }
         }
 
@@ -237,8 +277,14 @@ namespace Veldrid
                 8 => TextureSampleCount.Count8,
                 16 => TextureSampleCount.Count16,
                 32 => TextureSampleCount.Count32,
-                _ => throw new VeldridException("Unsupported multisample count: " + samples),
+                64 => TextureSampleCount.Count64,
+                _ => Throw(),
             };
+
+            TextureSampleCount Throw()
+            {
+                throw new VeldridException("Unsupported multisample count: " + samples);
+            }
         }
 
         [SuppressMessage("Style", "IDE0066:Convert switch statement to expression", Justification = "<Pending>")]

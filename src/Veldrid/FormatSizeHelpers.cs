@@ -29,7 +29,11 @@ namespace Veldrid
                 case PixelFormat.R8_G8_SNorm:
                 case PixelFormat.R8_G8_UInt:
                 case PixelFormat.R8_G8_SInt:
+                case PixelFormat.D16_UNorm:
                     return 2;
+
+                case PixelFormat.D16_UNorm_S8_UInt:
+                    return 3;
 
                 case PixelFormat.R32_UInt:
                 case PixelFormat.R32_SInt:
@@ -50,6 +54,7 @@ namespace Veldrid
                 case PixelFormat.R10_G10_B10_A2_UInt:
                 case PixelFormat.R11_G11_B10_Float:
                 case PixelFormat.D24_UNorm_S8_UInt:
+                case PixelFormat.D32_Float:
                     return 4;
 
                 case PixelFormat.D32_Float_S8_UInt:
@@ -88,10 +93,10 @@ namespace Veldrid
                 case PixelFormat.ETC2_R8_G8_B8_A1_UNorm:
                 case PixelFormat.ETC2_R8_G8_B8_A8_UNorm:
                     Debug.Fail("GetSizeInBytes should not be used on a compressed format.");
-                    throw Illegal.Value<PixelFormat>();
+                    return Illegal.Value<PixelFormat, uint>();
 
                 default:
-                    throw Illegal.Value<PixelFormat>();
+                    return Illegal.Value<PixelFormat, uint>();
             }
         }
 
@@ -143,7 +148,7 @@ namespace Veldrid
                 case VertexElementFormat.Int4:
                     return 16;
                 default:
-                    throw Illegal.Value<VertexElementFormat>();
+                    return Illegal.Value<VertexElementFormat, uint>();
             }
         }
     }

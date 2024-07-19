@@ -7,14 +7,16 @@ namespace Veldrid
         [Conditional("VALIDATE_USAGE")]
         internal static void ValidateResourceSet(GraphicsDevice gd, in ResourceSetDescription description)
         {
+#if VALIDATE_USAGE
             ResourceLayoutElementDescription[] elements = description.Layout.Description.Elements;
             BindableResource[] resources = description.BoundResources;
 
             if (elements.Length != resources.Length)
             {
-                throw new VeldridException(
-                    $"The number of resources specified ({resources.Length}) must be equal to the number of resources in " +
-                    $"the {nameof(ResourceLayout)} ({elements.Length}).");
+                static void Throw(int resourcesLength, int elementsLength) => throw new VeldridException(
+                    $"The number of resources specified ({resourcesLength}) must be equal to the number of resources in " +
+                    $"the {nameof(ResourceLayout)} ({elementsLength}).");
+                Throw(resources.Length, elements.Length);
             }
 
             for (uint i = 0; i < elements.Length; i++)
@@ -33,8 +35,10 @@ namespace Veldrid
 
                     if (!gd.Features.BufferRangeBinding && (range.Offset != 0 || range.SizeInBytes != range.Buffer.SizeInBytes))
                     {
-                        throw new VeldridException($"The {nameof(DeviceBufferRange)} in slot {i} uses a non-zero offset or less-than-full size, " +
+                        void Throw() => throw new VeldridException(
+                            $"The {nameof(DeviceBufferRange)} in slot {i} uses a non-zero offset or less-than-full size, " +
                             $"which requires {nameof(GraphicsDeviceFeatures)}.{nameof(GraphicsDeviceFeatures.BufferRangeBinding)}.");
+                        Throw();
                     }
 
                     uint alignment = element.Kind == ResourceKind.UniformBuffer
@@ -43,11 +47,14 @@ namespace Veldrid
 
                     if ((range.Offset % alignment) != 0)
                     {
-                       throw new VeldridException($"The {nameof(DeviceBufferRange)} in slot {i} has an invalid offset: {range.Offset}. " +
-                           $"The offset for this buffer must be a multiple of {alignment}.");
+                        void Throw() => throw new VeldridException(
+                            $"The {nameof(DeviceBufferRange)} in slot {i} has an invalid offset: {range.Offset}. " +
+                            $"The offset for this buffer must be a multiple of {alignment}.");
+                        Throw();
                     }
                 }
             }
+#endif
         }
 
         [Conditional("VALIDATE_USAGE")]
@@ -60,10 +67,11 @@ namespace Veldrid
                     if (!Util.GetDeviceBuffer(resource, out DeviceBuffer? b)
                         || (b.Usage & BufferUsage.UniformBuffer) == 0)
                     {
-                        throw new VeldridException(
+                        void Throw() => throw new VeldridException(
                             $"Resource in slot {slot} does not match {nameof(ResourceKind)}.{kind} specified in the {nameof(ResourceLayout)}. " +
                             $"It must be a {nameof(DeviceBuffer)} or {nameof(DeviceBufferRange)} with " +
                             $"{nameof(BufferUsage)}.{nameof(BufferUsage.UniformBuffer)}.");
+                        Throw();
                     }
                     break;
                 }
@@ -73,10 +81,11 @@ namespace Veldrid
                     if (!Util.GetDeviceBuffer(resource, out DeviceBuffer? b)
                         || (b.Usage & (BufferUsage.StructuredBufferReadOnly | BufferUsage.StructuredBufferReadWrite)) == 0)
                     {
-                        throw new VeldridException(
+                        void Throw() => throw new VeldridException(
                             $"Resource in slot {slot} does not match {nameof(ResourceKind)}.{kind} specified in " +
                             $"the {nameof(ResourceLayout)}. It must be a {nameof(DeviceBuffer)} with " +
                             $"{nameof(BufferUsage)}.{nameof(BufferUsage.StructuredBufferReadOnly)}.");
+                        Throw();
                     }
                     break;
                 }
@@ -86,52 +95,57 @@ namespace Veldrid
                     if (!Util.GetDeviceBuffer(resource, out DeviceBuffer? b)
                         || (b.Usage & BufferUsage.StructuredBufferReadWrite) == 0)
                     {
-                        throw new VeldridException(
+                        void Throw() => throw new VeldridException(
                             $"Resource in slot {slot} does not match {nameof(ResourceKind)} specified in the {nameof(ResourceLayout)}. " +
                             $"It must be a {nameof(DeviceBuffer)} with {nameof(BufferUsage)}.{nameof(BufferUsage.StructuredBufferReadWrite)}.");
+                        Throw();
                     }
                     break;
                 }
 
                 case ResourceKind.TextureReadOnly:
                 {
-                    if (!(resource is TextureView tv && (tv.Target.Usage & TextureUsage.Sampled) != 0)
-                        && !(resource is Texture t && (t.Usage & TextureUsage.Sampled) != 0))
+                    if (!(resource.Kind == BindableResourceKind.TextureView && (resource.GetTextureView().Target.Usage & TextureUsage.Sampled) != 0)
+                        && !(resource.Kind == BindableResourceKind.Texture && (resource.GetTexture().Usage & TextureUsage.Sampled) != 0))
                     {
-                        throw new VeldridException(
+                        void Throw() => throw new VeldridException(
                             $"Resource in slot {slot} does not match {nameof(ResourceKind)}.{kind} specified in the " +
                             $"{nameof(ResourceLayout)}. It must be a {nameof(Texture)} or {nameof(TextureView)} whose target " +
                             $"has {nameof(TextureUsage)}.{nameof(TextureUsage.Sampled)}.");
+                        Throw();
                     }
                     break;
                 }
 
                 case ResourceKind.TextureReadWrite:
                 {
-                    if (!(resource is TextureView tv && (tv.Target.Usage & TextureUsage.Storage) != 0)
-                        && !(resource is Texture t && (t.Usage & TextureUsage.Storage) != 0))
+                    if (!(resource.Kind == BindableResourceKind.TextureView && (resource.GetTextureView().Target.Usage & TextureUsage.Storage) != 0)
+                        && !(resource.Kind == BindableResourceKind.Texture && (resource.GetTexture().Usage & TextureUsage.Storage) != 0))
                     {
-                        throw new VeldridException(
+                        void Throw() => throw new VeldridException(
                             $"Resource in slot {slot} does not match {nameof(ResourceKind)}.{kind} specified in the " +
                             $"{nameof(ResourceLayout)}. It must be a {nameof(Texture)} or {nameof(TextureView)} whose target " +
                             $"has {nameof(TextureUsage)}.{nameof(TextureUsage.Storage)}.");
+                        Throw();
                     }
                     break;
                 }
 
                 case ResourceKind.Sampler:
                 {
-                    if (resource is not Sampler s)
+                    if (resource.Kind != BindableResourceKind.Sampler)
                     {
-                        throw new VeldridException(
+                        void Throw(BindableResourceKind resourceKind) => throw new VeldridException(
                             $"Resource in slot {slot} does not match {nameof(ResourceKind)}.{kind} specified in the {nameof(ResourceLayout)}. " +
-                            $"It must be a {nameof(Sampler)}.");
+                            $"It must be a {nameof(Sampler)} but was {resourceKind}.");
+                        Throw(resource.Kind);
                     }
                     break;
                 }
 
                 default:
-                    throw Illegal.Value<ResourceKind>();
+                    Illegal.Value<ResourceKind>();
+                    break;
             }
         }
     }

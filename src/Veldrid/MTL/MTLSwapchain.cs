@@ -99,7 +99,7 @@ namespace Veldrid.MTL
                 : PixelFormat.B8_G8_R8_A8_UNorm;
 
             _metalLayer.device = _gd.Device;
-            _metalLayer.pixelFormat = MTLFormats.VdToMTLPixelFormat(format, false);
+            _metalLayer.pixelFormat = MTLFormats.VdToMTLPixelFormat(format, default);
             _metalLayer.framebufferOnly = true;
             _metalLayer.drawableSize = new CGSize(width, height);
 
@@ -167,7 +167,7 @@ namespace Veldrid.MTL
         {
             if (_drawable.NativePtr != IntPtr.Zero)
             {
-                ObjectiveCRuntime.objc_msgSend(_drawable.NativePtr, "release");
+                ObjectiveCRuntime.objc_msgSend(_drawable.NativePtr, "release"u8);
             }
             _framebuffer.Dispose();
             ObjectiveCRuntime.release(_metalLayer.NativePtr);

@@ -37,8 +37,10 @@ namespace Veldrid.Vulkan
             IsComputePipeline = false;
             RefCount = new ResourceRefCount(this);
 
-            VkGraphicsPipelineCreateInfo pipelineCI = new();
-            pipelineCI.sType = VkStructureType.VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+            VkGraphicsPipelineCreateInfo pipelineCI = new()
+            {
+                sType = VkStructureType.VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO
+            };
 
             // Blend State
             int attachmentsCount = description.BlendState.AttachmentStates.Length;
@@ -54,7 +56,7 @@ namespace Veldrid.Vulkan
                     srcAlphaBlendFactor = VkFormats.VdToVkBlendFactor(vdDesc.SourceAlphaFactor),
                     dstAlphaBlendFactor = VkFormats.VdToVkBlendFactor(vdDesc.DestinationAlphaFactor),
                     alphaBlendOp = VkFormats.VdToVkBlendOp(vdDesc.AlphaFunction),
-                    blendEnable = vdDesc.BlendEnabled,
+                    blendEnable = (VkBool32)vdDesc.BlendEnabled,
                     colorWriteMask = VkFormats.VdToVkColorWriteMask(vdDesc.ColorWriteMask.GetOrDefault()),
                 };
                 attachmentsPtr[i] = attachmentState;
@@ -82,7 +84,7 @@ namespace Veldrid.Vulkan
                 sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
                 cullMode = VkFormats.VdToVkCullMode(rsDesc.CullMode),
                 polygonMode = VkFormats.VdToVkPolygonMode(rsDesc.FillMode),
-                depthClampEnable = !rsDesc.DepthClipEnabled,
+                depthClampEnable = (VkBool32)!rsDesc.DepthClipEnabled,
                 frontFace = rsDesc.FrontFace == FrontFace.Clockwise
                     ? VkFrontFace.VK_FRONT_FACE_CLOCKWISE
                     : VkFrontFace.VK_FRONT_FACE_COUNTER_CLOCKWISE,
@@ -111,10 +113,10 @@ namespace Veldrid.Vulkan
             VkPipelineDepthStencilStateCreateInfo dssCI = new()
             {
                 sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-                depthWriteEnable = vdDssDesc.DepthWriteEnabled,
-                depthTestEnable = vdDssDesc.DepthTestEnabled,
+                depthWriteEnable = (VkBool32)vdDssDesc.DepthWriteEnabled,
+                depthTestEnable = (VkBool32)vdDssDesc.DepthTestEnabled,
                 depthCompareOp = VkFormats.VdToVkCompareOp(vdDssDesc.DepthComparison),
-                stencilTestEnable = vdDssDesc.StencilTestEnabled,
+                stencilTestEnable = (VkBool32)vdDssDesc.StencilTestEnabled,
                 front = new VkStencilOpState()
                 {
                     failOp = VkFormats.VdToVkStencilOp(vdDssDesc.StencilFront.Fail),
@@ -145,7 +147,7 @@ namespace Veldrid.Vulkan
             {
                 sType = VkStructureType.VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
                 rasterizationSamples = vkSampleCount,
-                alphaToCoverageEnable = description.BlendState.AlphaToCoverageEnabled
+                alphaToCoverageEnable = (VkBool32)description.BlendState.AlphaToCoverageEnabled
             };
 
             pipelineCI.pMultisampleState = &multisampleCI;
@@ -311,7 +313,7 @@ namespace Veldrid.Vulkan
             for (int i = 0; i < outputColorAttachmentDescs.Length; i++)
             {
                 ref VkAttachmentDescription desc = ref colorAttachmentDescs[i];
-                desc.format = VkFormats.VdToVkPixelFormat(outputColorAttachmentDescs[i].Format);
+                desc.format = VkFormats.VdToVkPixelFormat(outputColorAttachmentDescs[i].Format, default);
                 desc.samples = vkSampleCount;
                 desc.loadOp = VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 desc.storeOp = VkAttachmentStoreOp.VK_ATTACHMENT_STORE_OP_STORE;
@@ -331,7 +333,7 @@ namespace Veldrid.Vulkan
             {
                 PixelFormat depthFormat = outputDesc.DepthAttachment.GetValueOrDefault().Format;
                 bool hasStencil = FormatHelpers.IsStencilFormat(depthFormat);
-                depthAttachmentDesc.format = VkFormats.VdToVkPixelFormat(depthFormat, toDepthFormat: true);
+                depthAttachmentDesc.format = VkFormats.VdToVkPixelFormat(depthFormat, TextureUsage.DepthStencil);
                 depthAttachmentDesc.samples = vkSampleCount;
                 depthAttachmentDesc.loadOp = VkAttachmentLoadOp.VK_ATTACHMENT_LOAD_OP_DONT_CARE;
                 depthAttachmentDesc.storeOp = VkAttachmentStoreOp.VK_ATTACHMENT_STORE_OP_STORE;

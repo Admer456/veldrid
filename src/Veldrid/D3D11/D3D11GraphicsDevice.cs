@@ -65,12 +65,11 @@ namespace Veldrid.D3D11
                 flags &= ~DeviceCreationFlags.Debug;
             }
 
-            ID3D11Device? device;
-            try
+            static void CreateDevice(DeviceCreationFlags flags, IntPtr adapterPtr, out ID3D11Device? device)
             {
-                if (options.AdapterPtr != IntPtr.Zero)
+                try
                 {
-                    VorticeD3D11.D3D11CreateDevice(options.AdapterPtr,
+                    VorticeD3D11.D3D11CreateDevice(adapterPtr,
                         Vortice.Direct3D.DriverType.Hardware,
                         flags,
                         new[]
@@ -80,26 +79,24 @@ namespace Veldrid.D3D11
                         },
                         out device).CheckError();
                 }
-                else
+                catch
                 {
-                    VorticeD3D11.D3D11CreateDevice(IntPtr.Zero,
+                    VorticeD3D11.D3D11CreateDevice(adapterPtr,
                         Vortice.Direct3D.DriverType.Hardware,
                         flags,
-                        new[]
-                        {
-                            Vortice.Direct3D.FeatureLevel.Level_11_1,
-                            Vortice.Direct3D.FeatureLevel.Level_11_0,
-                        },
+                        null!,
                         out device).CheckError();
                 }
             }
+            
+            ID3D11Device? device;
+            try
+            {
+                CreateDevice(flags, options.AdapterPtr, out device);
+            }
             catch
             {
-                VorticeD3D11.D3D11CreateDevice(IntPtr.Zero,
-                    Vortice.Direct3D.DriverType.Hardware,
-                    flags,
-                    null!,
-                    out device).CheckError();
+                CreateDevice(flags, IntPtr.Zero, out device);
             }
 
             _device = device ?? throw new VeldridException("Failed to initialize D3D11Device.");
@@ -224,8 +221,13 @@ namespace Veldrid.D3D11
 
         public override TextureSampleCount GetSampleCountLimit(PixelFormat format, bool depthFormat)
         {
-            Format dxgiFormat = D3D11Formats.ToDxgiFormat(format, depthFormat);
-            if (CheckFormatMultisample(dxgiFormat, 32))
+            Format dxgiFormat = D3D11Formats.ToDxgiFormat(format, depthFormat ? TextureUsage.DepthStencil : default);
+
+            if (CheckFormatMultisample(dxgiFormat, 64))
+            {
+                return TextureSampleCount.Count64;
+            }
+            else if (CheckFormatMultisample(dxgiFormat, 32))
             {
                 return TextureSampleCount.Count32;
             }
@@ -245,7 +247,6 @@ namespace Veldrid.D3D11
             {
                 return TextureSampleCount.Count2;
             }
-
             return TextureSampleCount.Count1;
         }
 
@@ -266,7 +267,7 @@ namespace Veldrid.D3D11
                 return false;
             }
 
-            Format dxgiFormat = D3D11Formats.ToDxgiFormat(format, (usage & TextureUsage.DepthStencil) != 0);
+            Format dxgiFormat = D3D11Formats.ToDxgiFormat(format, usage);
             FormatSupport fs = _device.CheckFormatSupport(dxgiFormat);
 
             if ((usage & TextureUsage.RenderTarget) != 0 && (fs & FormatSupport.RenderTarget) == 0

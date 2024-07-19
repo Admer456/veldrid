@@ -809,6 +809,7 @@ namespace Veldrid.OpenGL
             {
                 TextureTarget target = glTex.TextureTarget;
                 _textureSamplerManager.SetTextureTransient(target, glTex.Texture);
+
                 glGenerateMipmap(target);
             }
             CheckLastError();
@@ -1105,7 +1106,7 @@ namespace Veldrid.OpenGL
                         break;
 
                     case ResourceKind.Sampler:
-                        OpenGLSampler glSampler = Util.AssertSubtype<BindableResource, OpenGLSampler>(resource);
+                        OpenGLSampler glSampler = Util.AssertSubtype<Sampler, OpenGLSampler>(resource.GetSampler());
                         glSampler.EnsureResourcesCreated();
 
                         if (pipeline.GetSamplerBindingInfo(slot, element, out OpenGLSamplerBindingSlotInfo samplerBindingInfo))
@@ -1118,7 +1119,8 @@ namespace Veldrid.OpenGL
                         break;
 
                     default:
-                        throw Illegal.Value<ResourceKind>();
+                        Illegal.Value<ResourceKind>();
+                        break;
                 }
             }
         }
@@ -1346,7 +1348,6 @@ namespace Veldrid.OpenGL
             TextureTarget texTarget = glTex.TextureTarget;
 
             _textureSamplerManager.SetTextureTransient(texTarget, glTex.Texture);
-            CheckLastError();
 
             bool isCompressed = FormatHelpers.IsCompressedFormat(texture.Format);
             uint blockSize = isCompressed ? 4u : 1u;
@@ -1729,7 +1730,6 @@ namespace Veldrid.OpenGL
             if (isCompressed)
             {
                 _textureSamplerManager.SetTextureTransient(srcTarget, srcGLTexture.Texture);
-                CheckLastError();
 
                 int compressedSize;
                 glGetTexLevelParameteriv(
@@ -1769,7 +1769,6 @@ namespace Veldrid.OpenGL
                 else
                 {
                     _textureSamplerManager.SetTextureTransient(srcTarget, srcGLTexture.Texture);
-                    CheckLastError();
 
                     glGetCompressedTexImage(srcTarget, (int)srcMipLevel, block.Data);
                 }
@@ -1868,7 +1867,6 @@ namespace Veldrid.OpenGL
                             CheckLastError();
                         }
 
-                        CheckLastError();
                         glReadPixels(
                             (int)srcX, (int)srcY,
                             width, height,

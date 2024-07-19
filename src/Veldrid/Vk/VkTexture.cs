@@ -3,6 +3,7 @@ using System.Diagnostics;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.Vulkan;
 using static Veldrid.Vulkan.VulkanUtil;
+using VulkanBuffer = TerraFX.Interop.Vulkan.VkBuffer;
 
 namespace Veldrid.Vulkan
 {
@@ -11,14 +12,14 @@ namespace Veldrid.Vulkan
         private readonly VkGraphicsDevice _gd;
         private readonly VkImage _optimalImage;
         private readonly VkMemoryBlock _memoryBlock;
-        private readonly TerraFX.Interop.Vulkan.VkBuffer _stagingBuffer;
+        private readonly VulkanBuffer _stagingBuffer;
         private readonly uint _actualImageArrayLayers;
         
         public uint ActualArrayLayers => _actualImageArrayLayers;
         public override bool IsDisposed => RefCount.IsDisposed;
 
         public VkImage OptimalDeviceImage => _optimalImage;
-        public TerraFX.Interop.Vulkan.VkBuffer StagingBuffer => _stagingBuffer;
+        public VulkanBuffer StagingBuffer => _stagingBuffer;
         public VkMemoryBlock Memory => _memoryBlock;
 
         public VkFormat VkFormat { get; }
@@ -49,7 +50,7 @@ namespace Veldrid.Vulkan
             Type = description.Type;
             SampleCount = description.SampleCount;
             VkSampleCount = VkFormats.VdToVkSampleCount(SampleCount);
-            VkFormat = VkFormats.VdToVkPixelFormat(Format, (description.Usage & TextureUsage.DepthStencil) == TextureUsage.DepthStencil);
+            VkFormat = VkFormats.VdToVkPixelFormat(Format, description.Usage);
 
             bool isStaging = (Usage & TextureUsage.Staging) == TextureUsage.Staging;
 
@@ -87,7 +88,7 @@ namespace Veldrid.Vulkan
                 _optimalImage = optimalImage;
 
                 VkMemoryRequirements memoryRequirements;
-                bool prefersDedicatedAllocation;
+                VkBool32 prefersDedicatedAllocation;
                 if (_gd.GetImageMemoryRequirements2 != null)
                 {
                     VkImageMemoryRequirementsInfo2 memReqsInfo2 = new()
@@ -106,7 +107,7 @@ namespace Veldrid.Vulkan
                     };
                     _gd.GetImageMemoryRequirements2(_gd.Device, &memReqsInfo2, &memReqs2);
                     memoryRequirements = memReqs2.memoryRequirements;
-                    prefersDedicatedAllocation = dedicatedReqs.prefersDedicatedAllocation || dedicatedReqs.requiresDedicatedAllocation;
+                    prefersDedicatedAllocation = dedicatedReqs.prefersDedicatedAllocation | dedicatedReqs.requiresDedicatedAllocation;
                 }
                 else
                 {
@@ -157,13 +158,13 @@ namespace Veldrid.Vulkan
                     usage = VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VkBufferUsageFlags.VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                     size = stagingSize
                 };
-                TerraFX.Interop.Vulkan.VkBuffer stagingBuffer;
+                VulkanBuffer stagingBuffer;
                 VkResult result = vkCreateBuffer(_gd.Device, &bufferCI, null, &stagingBuffer);
                 CheckResult(result);
                 _stagingBuffer = stagingBuffer;
 
                 VkMemoryRequirements bufferMemReqs;
-                bool prefersDedicatedAllocation;
+                VkBool32 prefersDedicatedAllocation;
                 if (_gd.GetBufferMemoryRequirements2 != null)
                 {
                     VkBufferMemoryRequirementsInfo2 memReqInfo2 = new()
@@ -182,7 +183,7 @@ namespace Veldrid.Vulkan
                     };
                     _gd.GetBufferMemoryRequirements2(_gd.Device, &memReqInfo2, &memReqs2);
                     bufferMemReqs = memReqs2.memoryRequirements;
-                    prefersDedicatedAllocation = dedicatedReqs.prefersDedicatedAllocation || dedicatedReqs.requiresDedicatedAllocation;
+                    prefersDedicatedAllocation = dedicatedReqs.prefersDedicatedAllocation | dedicatedReqs.requiresDedicatedAllocation;
                 }
                 else
                 {
@@ -293,7 +294,7 @@ namespace Veldrid.Vulkan
         internal VkSubresourceLayout GetSubresourceLayout(uint mipLevel, uint arrayLevel)
         {
             VkSubresourceLayout layout;
-            bool staging = _stagingBuffer != TerraFX.Interop.Vulkan.VkBuffer.NULL;
+            bool staging = _stagingBuffer != VulkanBuffer.NULL;
             if (!staging)
             {
                 VkImageAspectFlags aspect = (Usage & TextureUsage.DepthStencil) == TextureUsage.DepthStencil
@@ -343,7 +344,7 @@ namespace Veldrid.Vulkan
             uint layerCount,
             VkImageLayout newLayout)
         {
-            if (_stagingBuffer != TerraFX.Interop.Vulkan.VkBuffer.NULL)
+            if (_stagingBuffer != VulkanBuffer.NULL)
             {
                 return;
             }
@@ -406,7 +407,7 @@ namespace Veldrid.Vulkan
             uint layerCount,
             VkImageLayout newLayout)
         {
-            if (_stagingBuffer != TerraFX.Interop.Vulkan.VkBuffer.NULL)
+            if (_stagingBuffer != VulkanBuffer.NULL)
             {
                 return;
             }
@@ -464,7 +465,7 @@ namespace Veldrid.Vulkan
 
         internal void SetStagingDimensions(uint width, uint height, uint depth, PixelFormat format)
         {
-            Debug.Assert(_stagingBuffer != TerraFX.Interop.Vulkan.VkBuffer.NULL);
+            Debug.Assert(_stagingBuffer != VulkanBuffer.NULL);
             Debug.Assert(Usage == TextureUsage.Staging);
             Width = width;
             Height = height;

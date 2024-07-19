@@ -11,10 +11,11 @@ using Veldrid.OpenGLBinding;
 using static Veldrid.OpenGL.EGL.EGLNative;
 using static Veldrid.OpenGL.OpenGLUtil;
 using static Veldrid.OpenGLBinding.OpenGLNative;
-using NativeLibrary = NativeLibraryLoader.NativeLibrary;
 
 namespace Veldrid.OpenGL
 {
+    using unsafe DebugProc = delegate* unmanaged[Cdecl]<DebugSource, DebugType, uint, DebugSeverity, uint, byte*, void*, void>;
+
     internal sealed unsafe class OpenGLGraphicsDevice : GraphicsDevice
     {
         private string _version;
@@ -31,6 +32,7 @@ namespace Veldrid.OpenGL
         private OpenGLTextureSamplerManager _textureSamplerManager;
         private OpenGLCommandExecutor _commandExecutor;
         private DebugProc _debugMessageCallback;
+        private GCHandle _selfHandle;
         private OpenGLExtensions _extensions;
         private BackendInfoOpenGL _openglInfo;
 
@@ -145,6 +147,7 @@ namespace Veldrid.OpenGL
                 }
             }
 
+            _selfHandle = GCHandle.Alloc(this, GCHandleType.Weak);
             _extensions = new OpenGLExtensions(extensions, BackendType, majorVersion, minorVersion);
 
             bool drawIndirect = _extensions.DrawIndirect || _extensions.MultiDrawIndirect;
@@ -230,7 +233,11 @@ namespace Veldrid.OpenGL
             }
             CheckLastError();
 
-            if (maxColorTextureSamples >= 32)
+            if (maxColorTextureSamples >= 64)
+            {
+                _maxColorTextureSamples = TextureSampleCount.Count64;
+            }
+            else if (maxColorTextureSamples >= 32)
             {
                 _maxColorTextureSamples = TextureSampleCount.Count32;
             }
@@ -414,9 +421,9 @@ namespace Veldrid.OpenGL
             eaglLayer.frame = uiView.frame;
             uiView.layer.addSublayer(eaglLayer.NativePtr);
 
-            NativeLibrary glesLibrary = new("/System/Library/Frameworks/OpenGLES.framework/OpenGLES");
+            IntPtr glesLibrary = NativeLibrary.Load("/System/Library/Frameworks/OpenGLES.framework/OpenGLES");
 
-            IntPtr getProcAddress(string name) => glesLibrary.LoadFunction(name);
+            IntPtr getProcAddress(string name) => NativeLibrary.GetExport(glesLibrary, name);
 
             LoadAllFunctions(eaglContext.NativePtr, getProcAddress, true);
 
@@ -471,7 +478,7 @@ namespace Veldrid.OpenGL
 
                 glRenderbufferStorage(
                     RenderbufferTarget.Renderbuffer,
-                    (uint)OpenGLFormats.VdToGLSizedInternalFormat(options.SwapchainDepthFormat.Value, true),
+                    (uint)OpenGLFormats.VdToGLSizedInternalFormat(options.SwapchainDepthFormat.Value, TextureUsage.DepthStencil),
                     (uint)fbWidth,
                     (uint)fbHeight);
                 CheckLastError();
@@ -563,7 +570,7 @@ namespace Veldrid.OpenGL
 
                         glRenderbufferStorage(
                             RenderbufferTarget.Renderbuffer,
-                            (uint)OpenGLFormats.VdToGLSizedInternalFormat(options.SwapchainDepthFormat.Value, true),
+                            (uint)OpenGLFormats.VdToGLSizedInternalFormat(options.SwapchainDepthFormat.Value, TextureUsage.DepthStencil),
                             (uint)newWidth,
                             (uint)newHeight);
                         CheckLastError();
@@ -576,7 +583,7 @@ namespace Veldrid.OpenGL
                 eaglLayer.removeFromSuperlayer();
                 eaglLayer.Release();
                 eaglContext.Release();
-                glesLibrary.Dispose();
+                NativeLibrary.Free(glesLibrary);
             }
 
             OpenGLPlatformInfo platformInfo = new(
@@ -697,7 +704,7 @@ namespace Veldrid.OpenGL
             contextAttribs[3] = EGL_NONE;
             contextAttribs[4] = EGL_NONE;
 
-        TryCreateContext:
+            TryCreateContext:
             if (debug)
             {
                 contextAttribs[2] = EGL_CONTEXT_OPENGL_DEBUG;
@@ -1111,7 +1118,7 @@ namespace Veldrid.OpenGL
             }
         }
 
-        public void EnableDebugCallback() => EnableDebugCallback(DefaultDebugCallback);
+        public void EnableDebugCallback() => EnableDebugCallback(&DefaultDebugCallback);
 
         public void EnableDebugCallback(DebugProc callback)
         {
@@ -1124,11 +1131,12 @@ namespace Veldrid.OpenGL
             // The debug callback delegate must be persisted, otherwise errors will occur
             // when the OpenGL drivers attempt to call it after it has been collected.
             _debugMessageCallback = callback;
-            glDebugMessageCallback(_debugMessageCallback, null);
+            glDebugMessageCallback(_debugMessageCallback, (void*)GCHandle.ToIntPtr(_selfHandle));
             CheckLastError();
         }
 
-        private void DefaultDebugCallback(
+        [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+        private static void DefaultDebugCallback(
             DebugSource source,
             DebugType type,
             uint id,
@@ -1137,6 +1145,9 @@ namespace Veldrid.OpenGL
             byte* message,
             void* userParam)
         {
+            GCHandle gdHandle = GCHandle.FromIntPtr((nint)userParam);
+            OpenGLGraphicsDevice? gd = gdHandle.Target as OpenGLGraphicsDevice;
+
 #if DEBUG
             if (type == DebugType.DebugTypeError)
             {
@@ -1146,7 +1157,13 @@ namespace Veldrid.OpenGL
                 }
             }
 #endif
-            if (!_openglInfo.InvokeDebugProc(source, type, id, severity, length, message, userParam))
+
+            if (gd == null)
+            {
+                return;
+            }
+
+            if (!gd._openglInfo.InvokeDebugProc(source, type, id, severity, length, message))
             {
                 if (severity != DebugSeverity.DebugSeverityNotification)
                 {
@@ -1171,6 +1188,8 @@ namespace Veldrid.OpenGL
                 thread.FlushAndFinish();
                 thread.Terminate();
             }
+
+            _selfHandle.Free();
         }
 
         public override bool GetOpenGLInfo(out BackendInfoOpenGL info)
@@ -1396,6 +1415,9 @@ namespace Veldrid.OpenGL
                         {
                             Action? action = Unsafe.As<Action>(workItem.Object0);
                             Debug.Assert(action != null);
+
+                            Debug.Assert(workItem.Object1 == null || workItem.Object1 is ManualResetEvent);
+                            eventAfterExecute = Unsafe.As<ManualResetEvent>(workItem.Object1);
 
                             action.Invoke();
                         }
@@ -1661,7 +1683,6 @@ namespace Veldrid.OpenGL
                                     else
                                     {
                                         _gd.TextureSamplerManager.SetTextureTransient(texture.TextureTarget, texture.Texture);
-                                        CheckLastError();
 
                                         glGetCompressedTexImage(texture.TextureTarget, (int)mipLevel, fullBlock.Data);
                                     }
@@ -1684,7 +1705,6 @@ namespace Veldrid.OpenGL
                                     else
                                     {
                                         _gd.TextureSamplerManager.SetTextureTransient(texture.TextureTarget, texture.Texture);
-                                        CheckLastError();
 
                                         glGetCompressedTexImage(texture.TextureTarget, (int)mipLevel, block.Data);
                                     }
@@ -1821,11 +1841,13 @@ namespace Veldrid.OpenGL
             {
                 CheckExceptions();
 
-                MapParams mrp = new();
-                mrp.OffsetInBytes = offsetInBytes;
-                mrp.SizeInBytes = sizeInBytes;
-                mrp.Subresource = subresource;
-                mrp.MapMode = mode;
+                MapParams mrp = new()
+                {
+                    OffsetInBytes = offsetInBytes,
+                    SizeInBytes = sizeInBytes,
+                    Subresource = subresource,
+                    MapMode = mode
+                };
 
                 ManualResetEvent mre = RentResetEvent();
                 ExecutionThreadWorkItem workItem = new(resource, &mrp, mre);

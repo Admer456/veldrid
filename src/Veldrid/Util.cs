@@ -13,7 +13,7 @@ namespace Veldrid
 
         [DebuggerNonUserCode]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static TDerived AssertSubtype<TBase, TDerived>(TBase value) where TDerived : class, TBase where TBase : class
+        internal static TDerived AssertSubtype<TBase, TDerived>(TBase? value) where TDerived : class, TBase where TBase : class
         {
 #if DEBUG
             if (value is not TDerived derived)
@@ -44,6 +44,21 @@ namespace Veldrid
         internal static unsafe string GetString(sbyte* stringStart)
         {
             return GetString((byte*)stringStart);
+        }
+
+        internal static unsafe string GetString(ReadOnlySpan<byte> span)
+        {
+            int length = span.IndexOf((byte)'\0');
+            if (length == -1)
+            {
+                length = span.Length;
+            }
+            return Encoding.UTF8.GetString(span.Slice(0, length));
+        }
+        
+        internal static unsafe string GetString(ReadOnlySpan<sbyte> span)
+        {
+            return GetString(MemoryMarshal.AsBytes(span));
         }
 
         internal static bool NullableEquals<T>(T? left, T? right) where T : struct, IEquatable<T>
@@ -224,27 +239,36 @@ namespace Veldrid
 
         public static DeviceBufferRange GetBufferRange(BindableResource resource, uint additionalOffset)
         {
-            if (resource is DeviceBufferRange range)
+            if (resource.Kind == BindableResourceKind.DeviceBufferRange)
             {
+                DeviceBufferRange range = resource.GetDeviceBufferRange();
                 return new DeviceBufferRange(range.Buffer, range.Offset + additionalOffset, range.SizeInBytes);
+            }
+            else if (resource.Kind == BindableResourceKind.DeviceBuffer)
+            {
+                DeviceBuffer buffer = resource.GetDeviceBuffer();
+                return new DeviceBufferRange(buffer, additionalOffset, buffer.SizeInBytes);
             }
             else
             {
-                DeviceBuffer buffer = (DeviceBuffer)resource;
-                return new DeviceBufferRange(buffer, additionalOffset, buffer.SizeInBytes);
+                static DeviceBufferRange Throw(BindableResourceKind resourceKind)
+                {
+                    throw new VeldridException($"Unexpected resource type used in a buffer type slot: {resourceKind}");
+                }
+                return Throw(resource.Kind);
             }
         }
 
         public static bool GetDeviceBuffer(BindableResource resource, [MaybeNullWhen(false)] out DeviceBuffer buffer)
         {
-            if (resource is DeviceBuffer db)
+            if (resource.Kind == BindableResourceKind.DeviceBuffer)
             {
-                buffer = db;
+                buffer = resource.GetDeviceBuffer();
                 return true;
             }
-            else if (resource is DeviceBufferRange range)
+            else if (resource.Kind == BindableResourceKind.DeviceBufferRange)
             {
-                buffer = range.Buffer;
+                buffer = resource.GetDeviceBufferRange().Buffer;
                 return true;
             }
 
@@ -254,18 +278,21 @@ namespace Veldrid
 
         internal static TextureView GetTextureView(GraphicsDevice gd, BindableResource resource)
         {
-            if (resource is TextureView view)
+            if (resource.Kind == BindableResourceKind.TextureView)
             {
-                return view;
+                return resource.GetTextureView();
             }
-            else if (resource is Texture tex)
+            else if (resource.Kind == BindableResourceKind.Texture)
             {
-                return tex.GetFullTextureView(gd);
+                return resource.GetTexture().GetFullTextureView(gd);
             }
             else
             {
-                throw new VeldridException(
-                    $"Unexpected resource type. Expected Texture or TextureView but found {resource.GetType().Name}");
+                static TextureView Throw(BindableResourceKind resourceKind)
+                {
+                    throw new VeldridException($"Unexpected resource type used in a texture type slot: {resourceKind}.");
+                }
+                return Throw(resource.Kind);
             }
         }
 

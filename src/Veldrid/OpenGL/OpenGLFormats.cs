@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using Veldrid.OpenGLBinding;
 
 namespace Veldrid.OpenGL
@@ -12,7 +13,7 @@ namespace Veldrid.OpenGL
             {
                 IndexFormat.UInt16 => DrawElementsType.UnsignedShort,
                 IndexFormat.UInt32 => DrawElementsType.UnsignedInt,
-                _ => throw Illegal.Value<IndexFormat>(),
+                _ => Illegal.Value<IndexFormat, DrawElementsType>(),
             };
         }
 
@@ -26,26 +27,28 @@ namespace Veldrid.OpenGL
                 ShaderStages.TessellationEvaluation => ShaderType.TessEvaluationShader,
                 ShaderStages.Fragment => ShaderType.FragmentShader,
                 ShaderStages.Compute => ShaderType.ComputeShader,
-                _ => throw Illegal.Value<ShaderStages>(),
+                _ => Illegal.Value<ShaderStages, ShaderType>(),
             };
         }
 
-        internal static PixelInternalFormat VdToGLPixelInternalFormat(PixelFormat format)
+        internal static PixelInternalFormat VdToGLPixelInternalFormat(PixelFormat format, TextureUsage usage)
         {
+            bool depthFormat = FormatHelpers.IsDepthFormatPreferred(format, usage);
+
             return format switch
             {
                 PixelFormat.R8_UNorm => PixelInternalFormat.R8,
                 PixelFormat.R8_SNorm => PixelInternalFormat.R8Snorm,
                 PixelFormat.R8_UInt => PixelInternalFormat.R8ui,
                 PixelFormat.R8_SInt => PixelInternalFormat.R8i,
-                PixelFormat.R16_UNorm => PixelInternalFormat.R16,
+                PixelFormat.R16_UNorm => depthFormat ? PixelInternalFormat.DepthComponent16 : PixelInternalFormat.R16,
                 PixelFormat.R16_SNorm => PixelInternalFormat.R16Snorm,
                 PixelFormat.R16_UInt => PixelInternalFormat.R16ui,
                 PixelFormat.R16_SInt => PixelInternalFormat.R16i,
                 PixelFormat.R16_Float => PixelInternalFormat.R16f,
                 PixelFormat.R32_UInt => PixelInternalFormat.R32ui,
                 PixelFormat.R32_SInt => PixelInternalFormat.R32i,
-                PixelFormat.R32_Float => PixelInternalFormat.R32f,
+                PixelFormat.R32_Float => depthFormat ? PixelInternalFormat.DepthComponent32f : PixelInternalFormat.R32f,
                 PixelFormat.R8_G8_UNorm => PixelInternalFormat.Rg8,
                 PixelFormat.R8_G8_SNorm => PixelInternalFormat.Rg8Snorm,
                 PixelFormat.R8_G8_UInt => PixelInternalFormat.Rg8ui,
@@ -90,12 +93,14 @@ namespace Veldrid.OpenGL
                 PixelFormat.ETC2_R8_G8_B8_UNorm => PixelInternalFormat.CompressedRgb8Etc2,
                 PixelFormat.ETC2_R8_G8_B8_A1_UNorm => PixelInternalFormat.CompressedRgb8PunchthroughAlpha1Etc2,
                 PixelFormat.ETC2_R8_G8_B8_A8_UNorm => PixelInternalFormat.CompressedRgba8Etc2Eac,
+                PixelFormat.D16_UNorm => PixelInternalFormat.DepthComponent16,
+                PixelFormat.D32_Float => PixelInternalFormat.DepthComponent32f,
                 PixelFormat.D32_Float_S8_UInt => PixelInternalFormat.Depth32fStencil8,
                 PixelFormat.D24_UNorm_S8_UInt => PixelInternalFormat.Depth24Stencil8,
                 PixelFormat.R10_G10_B10_A2_UNorm => PixelInternalFormat.Rgb10A2,
                 PixelFormat.R10_G10_B10_A2_UInt => PixelInternalFormat.Rgb10A2ui,
                 PixelFormat.R11_G11_B10_Float => PixelInternalFormat.R11fG11fB10f,
-                _ => throw Illegal.Value<PixelFormat>(),
+                _ => Illegal.Value<PixelFormat, PixelInternalFormat>(),
             };
         }
 
@@ -107,13 +112,14 @@ namespace Veldrid.OpenGL
                 SamplerAddressMode.Mirror => TextureWrapMode.MirroredRepeat,
                 SamplerAddressMode.Clamp => TextureWrapMode.ClampToEdge,
                 SamplerAddressMode.Border => TextureWrapMode.ClampToBorder,
-                _ => throw Illegal.Value<SamplerAddressMode>(),
+                _ => Illegal.Value<SamplerAddressMode, TextureWrapMode>(),
             };
         }
 
-        [SuppressMessage("Style", "IDE0066:Convert switch statement to expression", Justification = "<Pending>")]
-        internal static GLPixelFormat VdToGLPixelFormat(PixelFormat format)
+        internal static GLPixelFormat VdToGLPixelFormat(PixelFormat format, TextureUsage usage)
         {
+            bool depthFormat = FormatHelpers.IsDepthFormatPreferred(format, usage);
+
             switch (format)
             {
                 case PixelFormat.R8_UNorm:
@@ -121,7 +127,7 @@ namespace Veldrid.OpenGL
                 case PixelFormat.R16_Float:
                 case PixelFormat.R32_Float:
                 case PixelFormat.BC4_UNorm:
-                    return GLPixelFormat.Red;
+                    return depthFormat ? GLPixelFormat.DepthComponent : GLPixelFormat.Red;
 
                 case PixelFormat.R8_SNorm:
                 case PixelFormat.R8_UInt:
@@ -189,6 +195,12 @@ namespace Veldrid.OpenGL
                 case PixelFormat.ETC2_R8_G8_B8_A8_UNorm:
                     return GLPixelFormat.Rgba;
 
+                case PixelFormat.D16_UNorm:
+                    return GLPixelFormat.DepthComponent;
+                case PixelFormat.D16_UNorm_S8_UInt:
+                    throw new VeldridException($"{nameof(PixelFormat.D16_UNorm_S8_UInt)} is not supported on OpenGL.");
+                case PixelFormat.D32_Float:
+                    return GLPixelFormat.DepthComponent;
                 case PixelFormat.D24_UNorm_S8_UInt:
                     return GLPixelFormat.DepthStencil;
                 case PixelFormat.D32_Float_S8_UInt:
@@ -201,7 +213,7 @@ namespace Veldrid.OpenGL
                 case PixelFormat.R11_G11_B10_Float:
                     return GLPixelFormat.Rgb;
                 default:
-                    throw Illegal.Value<PixelFormat>();
+                    return Illegal.Value<PixelFormat, GLPixelFormat>();
             }
         }
 
@@ -230,6 +242,7 @@ namespace Veldrid.OpenGL
                 case PixelFormat.BC5_SNorm:
                     return GLPixelType.Byte;
                 case PixelFormat.R16_UNorm:
+                case PixelFormat.D16_UNorm:
                 case PixelFormat.R16_UInt:
                 case PixelFormat.R16_G16_UNorm:
                 case PixelFormat.R16_G16_UInt:
@@ -256,6 +269,7 @@ namespace Veldrid.OpenGL
                 case PixelFormat.R16_G16_B16_A16_Float:
                     return GLPixelType.HalfFloat;
                 case PixelFormat.R32_Float:
+                case PixelFormat.D32_Float:
                 case PixelFormat.R32_G32_Float:
                 case PixelFormat.R32_G32_B32_A32_Float:
                     return GLPixelType.Float;
@@ -277,6 +291,8 @@ namespace Veldrid.OpenGL
                 case PixelFormat.ETC2_R8_G8_B8_A8_UNorm:
                     return GLPixelType.UnsignedByte; // ?
 
+                case PixelFormat.D16_UNorm_S8_UInt:
+                    throw new VeldridException($"{nameof(PixelFormat.D16_UNorm_S8_UInt)} is not supported on OpenGL.");
                 case PixelFormat.D32_Float_S8_UInt:
                     return GLPixelType.Float32UnsignedInt248Rev;
                 case PixelFormat.D24_UNorm_S8_UInt:
@@ -289,12 +305,14 @@ namespace Veldrid.OpenGL
                     return GLPixelType.UnsignedInt10F11F11FRev;
 
                 default:
-                    throw Illegal.Value<PixelFormat>();
+                    return Illegal.Value<PixelFormat, GLPixelType>();
             }
         }
 
-        internal static SizedInternalFormat VdToGLSizedInternalFormat(PixelFormat format, bool depthFormat)
+        internal static SizedInternalFormat VdToGLSizedInternalFormat(PixelFormat format, TextureUsage usage)
         {
+            bool depthFormat = FormatHelpers.IsDepthFormatPreferred(format, usage);
+
             switch (format)
             {
                 case PixelFormat.R8_UNorm:
@@ -420,6 +438,13 @@ namespace Veldrid.OpenGL
                 case PixelFormat.ETC2_R8_G8_B8_A8_UNorm:
                     return (SizedInternalFormat)PixelInternalFormat.CompressedRgba8Etc2Eac;
 
+                case PixelFormat.D16_UNorm:
+                    return (SizedInternalFormat)(depthFormat ? PixelInternalFormat.DepthComponent16 : PixelInternalFormat.R16);
+                case PixelFormat.D16_UNorm_S8_UInt:
+                    Debug.Assert(depthFormat);
+                    throw new VeldridException($"{nameof(PixelFormat.D16_UNorm_S8_UInt)} is not supported on OpenGL.");
+                case PixelFormat.D32_Float:
+                    return (SizedInternalFormat)(depthFormat ? PixelInternalFormat.DepthComponent32f : PixelInternalFormat.R32f);
                 case PixelFormat.D32_Float_S8_UInt:
                     Debug.Assert(depthFormat);
                     return (SizedInternalFormat)PixelInternalFormat.Depth32fStencil8;
@@ -435,7 +460,7 @@ namespace Veldrid.OpenGL
                     return (SizedInternalFormat)PixelInternalFormat.R11fG11fB10f;
 
                 default:
-                    throw Illegal.Value<PixelFormat>();
+                    return Illegal.Value<PixelFormat, SizedInternalFormat>();
             }
         }
 
@@ -477,7 +502,10 @@ namespace Veldrid.OpenGL
                     mag = TextureMagFilter.Linear;
                     break;
                 default:
-                    throw Illegal.Value<SamplerFilter>();
+                    Unsafe.SkipInit(out min);
+                    Unsafe.SkipInit(out mag);
+                    Illegal.Value<SamplerFilter>();
+                    break;
             }
         }
 
@@ -488,7 +516,7 @@ namespace Veldrid.OpenGL
                 MapMode.Read => BufferAccessMask.Read,
                 MapMode.Write => BufferAccessMask.Write | BufferAccessMask.InvalidateBuffer | BufferAccessMask.InvalidateRange,
                 MapMode.ReadWrite => BufferAccessMask.Read | BufferAccessMask.Write,
-                _ => throw Illegal.Value<MapMode>(),
+                _ => Illegal.Value<MapMode, BufferAccessMask>(),
             };
         }
 
@@ -567,7 +595,9 @@ namespace Veldrid.OpenGL
                     isInteger = true;
                     return VertexAttribPointerType.Int;
                 default:
-                    throw Illegal.Value<VertexElementFormat>();
+                    Unsafe.SkipInit(out normalized);
+                    Unsafe.SkipInit(out isInteger);
+                    return Illegal.Value<VertexElementFormat, VertexAttribPointerType>();
             }
         }
 
@@ -625,7 +655,7 @@ namespace Veldrid.OpenGL
                 ComparisonKind.NotEqual => DepthFunction.Notequal,
                 ComparisonKind.GreaterEqual => DepthFunction.Gequal,
                 ComparisonKind.Always => DepthFunction.Always,
-                _ => throw Illegal.Value<ComparisonKind>(),
+                _ => Illegal.Value<ComparisonKind, DepthFunction>(),
             };
         }
 
@@ -645,7 +675,7 @@ namespace Veldrid.OpenGL
                 BlendFactor.InverseDestinationColor => BlendingFactorSrc.OneMinusDstColor,
                 BlendFactor.BlendFactor => BlendingFactorSrc.ConstantColor,
                 BlendFactor.InverseBlendFactor => BlendingFactorSrc.OneMinusConstantColor,
-                _ => throw Illegal.Value<BlendFactor>(),
+                _ => Illegal.Value<BlendFactor, BlendingFactorSrc>(),
             };
         }
 
@@ -658,7 +688,7 @@ namespace Veldrid.OpenGL
                 BlendFunction.ReverseSubtract => BlendEquationMode.FuncReverseSubtract,
                 BlendFunction.Minimum => BlendEquationMode.Min,
                 BlendFunction.Maximum => BlendEquationMode.Max,
-                _ => throw Illegal.Value<BlendFunction>(),
+                _ => Illegal.Value<BlendFunction, BlendEquationMode>(),
             };
         }
 
@@ -668,7 +698,7 @@ namespace Veldrid.OpenGL
             {
                 PolygonFillMode.Solid => PolygonMode.Fill,
                 PolygonFillMode.Wireframe => PolygonMode.Line,
-                _ => throw Illegal.Value<PolygonFillMode>(),
+                _ => Illegal.Value<PolygonFillMode, PolygonMode>(),
             };
         }
 
@@ -684,7 +714,7 @@ namespace Veldrid.OpenGL
                 ComparisonKind.NotEqual => StencilFunction.Notequal,
                 ComparisonKind.GreaterEqual => StencilFunction.Gequal,
                 ComparisonKind.Always => StencilFunction.Always,
-                _ => throw Illegal.Value<ComparisonKind>(),
+                _ => Illegal.Value<ComparisonKind, StencilFunction>(),
             };
         }
 
@@ -700,7 +730,7 @@ namespace Veldrid.OpenGL
                 StencilOperation.Invert => StencilOp.Invert,
                 StencilOperation.IncrementAndWrap => StencilOp.IncrWrap,
                 StencilOperation.DecrementAndWrap => StencilOp.DecrWrap,
-                _ => throw Illegal.Value<StencilOperation>(),
+                _ => Illegal.Value<StencilOperation, StencilOp>(),
             };
         }
 
@@ -710,7 +740,7 @@ namespace Veldrid.OpenGL
             {
                 FaceCullMode.Back => CullFaceMode.Back,
                 FaceCullMode.Front => CullFaceMode.Front,
-                _ => throw Illegal.Value<FaceCullMode>(),
+                _ => Illegal.Value<FaceCullMode, CullFaceMode>(),
             };
         }
 
@@ -723,7 +753,7 @@ namespace Veldrid.OpenGL
                 PrimitiveTopology.LineList => PrimitiveType.Lines,
                 PrimitiveTopology.LineStrip => PrimitiveType.LineStrip,
                 PrimitiveTopology.PointList => PrimitiveType.Points,
-                _ => throw Illegal.Value<PrimitiveTopology>(),
+                _ => Illegal.Value<PrimitiveTopology, PrimitiveType>(),
             };
         }
 
@@ -733,7 +763,7 @@ namespace Veldrid.OpenGL
             {
                 FrontFace.Clockwise => FrontFaceDirection.Cw,
                 FrontFace.CounterClockwise => FrontFaceDirection.Ccw,
-                _ => throw Illegal.Value<FrontFace>(),
+                _ => Illegal.Value<FrontFace, FrontFaceDirection>(),
             };
         }
 
@@ -753,7 +783,7 @@ namespace Veldrid.OpenGL
                 BlendFactor.InverseDestinationColor => BlendingFactorDest.OneMinusDstColor,
                 BlendFactor.BlendFactor => BlendingFactorDest.ConstantColor,
                 BlendFactor.InverseBlendFactor => BlendingFactorDest.OneMinusConstantColor,
-                _ => throw Illegal.Value<BlendFactor>(),
+                _ => Illegal.Value<BlendFactor, BlendingFactorDest>(),
             };
         }
     }

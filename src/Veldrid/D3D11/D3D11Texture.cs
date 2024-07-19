@@ -26,9 +26,7 @@ namespace Veldrid.D3D11
             Type = description.Type;
             SampleCount = description.SampleCount;
 
-            DxgiFormat = D3D11Formats.ToDxgiFormat(
-                description.Format,
-                (description.Usage & TextureUsage.DepthStencil) == TextureUsage.DepthStencil);
+            DxgiFormat = D3D11Formats.ToDxgiFormat(description.Format, description.Usage);
             
             CpuAccessFlags cpuFlags = CpuAccessFlags.None;
             ResourceUsage resourceUsage = ResourceUsage.Default;
@@ -49,7 +47,7 @@ namespace Veldrid.D3D11
             }
             if ((description.Usage & TextureUsage.Storage) == TextureUsage.Storage)
             {
-                bindFlags |= BindFlags.UnorderedAccess;
+                bindFlags |= BindFlags.UnorderedAccess | BindFlags.ShaderResource;
             }
             if ((description.Usage & TextureUsage.Staging) == TextureUsage.Staging)
             {
@@ -148,9 +146,7 @@ namespace Veldrid.D3D11
                 existingTexture.Description.CPUAccessFlags,
                 existingTexture.Description.MiscFlags);
 
-            DxgiFormat = D3D11Formats.ToDxgiFormat(
-                format,
-                (Usage & TextureUsage.DepthStencil) == TextureUsage.DepthStencil);
+            DxgiFormat = D3D11Formats.ToDxgiFormat(format, Usage);
         }
 
         private protected override TextureView CreateFullTextureView(GraphicsDevice gd)

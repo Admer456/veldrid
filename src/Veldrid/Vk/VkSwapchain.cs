@@ -49,6 +49,7 @@ namespace Veldrid.Vulkan
         public VkQueue PresentQueue => _presentQueue;
         public uint PresentQueueIndex => _presentQueueIndex;
         public ResourceRefCount RefCount { get; }
+        public object PresentLock { get; }
 
         public VkSwapchain(VkGraphicsDevice gd, in SwapchainDescription description) : this(gd, description, default)
         {
@@ -78,6 +79,9 @@ namespace Veldrid.Vulkan
             vkGetDeviceQueue(_gd.Device, _presentQueueIndex, 0, &presentQueue);
             _presentQueue = presentQueue;
 
+            RefCount = new ResourceRefCount(this);
+            PresentLock = new object();
+
             _framebuffer = new VkSwapchainFramebuffer(gd, this, _surface, description);
 
             CreateSwapchain(description.Width, description.Height);
@@ -91,12 +95,10 @@ namespace Veldrid.Vulkan
             vkCreateFence(_gd.Device, &fenceCI, null, &imageAvailableFence);
 
             AcquireNextImage(_gd.Device, default, imageAvailableFence);
-            vkWaitForFences(_gd.Device, 1, &imageAvailableFence, true, ulong.MaxValue);
+            vkWaitForFences(_gd.Device, 1, &imageAvailableFence, (VkBool32)true, ulong.MaxValue);
             vkResetFences(_gd.Device, 1, &imageAvailableFence);
 
             _imageAvailableFence = imageAvailableFence;
-
-            RefCount = new ResourceRefCount(this);
         }
 
         public override void Resize(uint width, uint height)
@@ -145,7 +147,7 @@ namespace Veldrid.Vulkan
                 VulkanFence imageAvailableFence = _imageAvailableFence;
                 if (AcquireNextImage(_gd.Device, default, imageAvailableFence))
                 {
-                    vkWaitForFences(_gd.Device, 1, &imageAvailableFence, true, ulong.MaxValue);
+                    vkWaitForFences(_gd.Device, 1, &imageAvailableFence, (VkBool32)true, ulong.MaxValue);
                     vkResetFences(_gd.Device, 1, &imageAvailableFence);
                 }
             }
@@ -263,13 +265,13 @@ namespace Veldrid.Vulkan
                 imageUsage = VkImageUsageFlags.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlags.VK_IMAGE_USAGE_TRANSFER_DST_BIT
             };
 
-            FixedArray2<uint> queueFamilyIndices = new(_gd.GraphicsQueueIndex, _gd.PresentQueueIndex);
+            uint* queueFamilyIndices = stackalloc uint[] { _gd.GraphicsQueueIndex, _gd.PresentQueueIndex };
 
             if (_gd.GraphicsQueueIndex != _gd.PresentQueueIndex)
             {
                 swapchainCI.imageSharingMode = VkSharingMode.VK_SHARING_MODE_CONCURRENT;
                 swapchainCI.queueFamilyIndexCount = 2;
-                swapchainCI.pQueueFamilyIndices = &queueFamilyIndices.First;
+                swapchainCI.pQueueFamilyIndices = queueFamilyIndices;
             }
             else
             {
@@ -279,7 +281,7 @@ namespace Veldrid.Vulkan
 
             swapchainCI.preTransform = VkSurfaceTransformFlagsKHR.VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
             swapchainCI.compositeAlpha = VkCompositeAlphaFlagsKHR.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-            swapchainCI.clipped = true;
+            swapchainCI.clipped = (VkBool32)true;
 
             VkSwapchainKHR oldSwapchain = _deviceSwapchain;
             swapchainCI.oldSwapchain = oldSwapchain;
@@ -320,25 +322,25 @@ namespace Veldrid.Vulkan
 
         private bool QueueSupportsPresent(uint queueFamilyIndex, VkSurfaceKHR surface)
         {
-            VkBool32 supported;
+            uint supported;
             VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
                 _gd.PhysicalDevice,
                 queueFamilyIndex,
                 surface,
                 &supported);
             CheckResult(result);
-            return supported;
+            return (VkBool32)supported;
         }
 
         public override void Dispose()
         {
+            _framebuffer.Dispose();
             RefCount.DecrementDispose();
         }
 
         void IResourceRefCountTarget.RefZeroed()
         {
             vkDestroyFence(_gd.Device, _imageAvailableFence, null);
-            _framebuffer.Dispose();
             vkDestroySwapchainKHR(_gd.Device, _deviceSwapchain, null);
             vkDestroySurfaceKHR(_gd.Instance, _surface, null);
         }

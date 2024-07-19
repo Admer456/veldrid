@@ -142,7 +142,9 @@ namespace Veldrid.Utilities
             {
                 _currentLine++;
 
-                ReadOnlySpanSplitter<char> splitter = new(line, _whitespaceChar, StringSplitOptions.RemoveEmptyEntries);
+                ReadOnlySpanSplitter<char> splitter = new(
+                    line, _whitespaceChar, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
                 if (!splitter.MoveNext())
                     return;
 
@@ -152,12 +154,16 @@ namespace Veldrid.Utilities
 
                 if (piece0.SequenceEqual("v"))
                 {
-                    ExpectPieces(ref splitter, "v", true, out ReadOnlySpan<char> piece1, out ReadOnlySpan<char> piece2, out ReadOnlySpan<char> piece3);
+                    ExpectPieces(
+                        ref splitter, "v", true,
+                        out ReadOnlySpan<char> piece1, out ReadOnlySpan<char> piece2, out ReadOnlySpan<char> piece3);
                     DiscoverPosition(ParseVector3(piece1, piece2, piece3, "position data"));
                 }
                 else if (piece0.SequenceEqual("vn"))
                 {
-                    ExpectPieces(ref splitter, "vn", true, out ReadOnlySpan<char> piece1, out ReadOnlySpan<char> piece2, out ReadOnlySpan<char> piece3);
+                    ExpectPieces(
+                        ref splitter, "vn", true,
+                        out ReadOnlySpan<char> piece1, out ReadOnlySpan<char> piece2, out ReadOnlySpan<char> piece3);
                     DiscoverNormal(ParseVector3(piece1, piece2, piece3, "normal data"));
                 }
                 else if (piece0.SequenceEqual("vt"))
@@ -235,7 +241,7 @@ namespace Veldrid.Utilities
             }
 
             private void ProcessFaceLine(
-                ref ReadOnlySpanSplitter<char> splitter,
+                scoped ref ReadOnlySpanSplitter<char> splitter,
                 ReadOnlySpan<char> piece1, ReadOnlySpan<char> piece2)
             {
                 ObjFile.FaceVertex faceVertex0 = ParseFaceVertex(piece1);
@@ -255,7 +261,7 @@ namespace Veldrid.Utilities
             {
                 if (faceComponents.IsEmpty)
                     ThrowExceptionForWrongFaceCount("There must be at least one face component");
-                
+
                 int firstSlash = faceComponents.IndexOf(_slashChar);
                 ReadOnlySpan<char> firstSlice = firstSlash == -1
                     ? faceComponents
@@ -360,9 +366,9 @@ namespace Veldrid.Utilities
 
             private Vector3 ParseVector3(ReadOnlySpan<char> xStr, ReadOnlySpan<char> yStr, ReadOnlySpan<char> zStr, string location)
             {
-                if (FastParse.TryParseDouble(xStr, out double x) &&
-                    FastParse.TryParseDouble(yStr, out double y) &&
-                    FastParse.TryParseDouble(zStr, out double z))
+                if (FastParse.TryParseDouble(xStr, out double x, out _) &&
+                    FastParse.TryParseDouble(yStr, out double y, out _) &&
+                    FastParse.TryParseDouble(zStr, out double z, out _))
                 {
                     return new Vector3((float)x, (float)y, (float)z);
                 }
@@ -372,8 +378,8 @@ namespace Veldrid.Utilities
 
             private Vector2 ParseVector2(ReadOnlySpan<char> xStr, ReadOnlySpan<char> yStr, string location)
             {
-                if (FastParse.TryParseDouble(xStr, out double x) &&
-                    FastParse.TryParseDouble(yStr, out double y))
+                if (FastParse.TryParseDouble(xStr, out double x, out _) &&
+                    FastParse.TryParseDouble(yStr, out double y, out _))
                 {
                     return new Vector2((float)x, (float)y);
                 }
@@ -418,7 +424,7 @@ namespace Veldrid.Utilities
             }
 
             private void ExpectPieces(
-                ref ReadOnlySpanSplitter<char> pieces, string name, bool exact,
+                scoped ref ReadOnlySpanSplitter<char> pieces, string name, bool exact,
                 out ReadOnlySpan<char> piece0, out ReadOnlySpan<char> piece1)
             {
                 if (!pieces.MoveNext())
