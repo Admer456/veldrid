@@ -885,7 +885,7 @@ namespace Veldrid.Vulkan
                 if ( hasBarycentricCoords )
                 {
                     _barycentricCoordinateFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR;
-                    _barycentricCoordinateFeature.fragmentShaderBarycentric = true;
+                    _barycentricCoordinateFeature.fragmentShaderBarycentric = VK_TRUE;
 
                     fixed ( void* p = &_barycentricCoordinateFeature )
                     {
