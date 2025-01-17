@@ -14,7 +14,7 @@ namespace Veldrid.Vulkan
         private readonly VkMemoryBlock _memoryBlock;
         private readonly VulkanBuffer _stagingBuffer;
         private readonly uint _actualImageArrayLayers;
-        
+
         public uint ActualArrayLayers => _actualImageArrayLayers;
         public override bool IsDisposed => RefCount.IsDisposed;
 

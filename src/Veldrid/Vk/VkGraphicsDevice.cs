@@ -30,7 +30,7 @@ namespace Veldrid.Vulkan
         private VkDeviceMemoryManager _memoryManager;
         private VkPhysicalDeviceProperties _physicalDeviceProperties;
         private VkPhysicalDeviceFeatures _physicalDeviceFeatures;
-        private VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR _barycentricCoordinateFeature = new();
+        private VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR _barycentricCoordinateFeature;
         private VkPhysicalDeviceMemoryProperties _physicalDeviceMemProperties;
         private VkDevice _device;
         private uint _graphicsQueueIndex;

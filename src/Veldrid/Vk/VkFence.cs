@@ -9,7 +9,7 @@ namespace Veldrid.Vulkan
         private readonly VkGraphicsDevice _gd;
         private VulkanFence _fence;
         private string? _name;
-        
+
         public ResourceRefCount RefCount { get; }
 
         public VulkanFence DeviceFence => _fence;
