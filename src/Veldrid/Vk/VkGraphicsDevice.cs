@@ -115,7 +115,7 @@ namespace Veldrid.Vulkan
                 surface = VkSurfaceUtil.CreateSurface(_instance, scDesc.Value.Source);
             }
 
-            CreatePhysicalDevice();
+            CreatePhysicalDevice(vkOptions.GetPhysicalDevice);
             CreateLogicalDevice(surface, options.PreferStandardClipSpaceYDirection, vkOptions);
 
             _memoryManager = new VkDeviceMemoryManager(
@@ -706,7 +706,7 @@ namespace Veldrid.Vulkan
             return 0;
         }
 
-        private void CreatePhysicalDevice()
+        private void CreatePhysicalDevice( Func<IntPtr, VkPhysicalDevice[], IntPtr>? selectPhysicalDevice )
         {
             uint deviceCount = 0;
             vkEnumeratePhysicalDevices(_instance, &deviceCount, null);
@@ -720,8 +720,14 @@ namespace Veldrid.Vulkan
             {
                 vkEnumeratePhysicalDevices(_instance, &deviceCount, physicalDevicesPtr);
             }
-            // Just use the first one.
+            // If there's no user-supplied device selector, just use the first one.
             _physicalDevice = physicalDevices[0];
+            if ( selectPhysicalDevice is not null )
+            {
+                _physicalDevice = new( selectPhysicalDevice((IntPtr)_instance.Value, physicalDevices).ToPointer() );
+            }
+
+            Console.WriteLine( $"Vulkan: selected physical device {(IntPtr)_physicalDevice.Value}" );
 
             VkPhysicalDeviceProperties physicalDeviceProperties;
             vkGetPhysicalDeviceProperties(_physicalDevice, &physicalDeviceProperties);
