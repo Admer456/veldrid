@@ -236,7 +236,8 @@ namespace Veldrid.Vulkan
             TextureSampleCount sampleCount,
             VkImage existingImage,
             bool isSwapchainTexture,
-            bool leaveOpen)
+            bool leaveOpen,
+            bool skipClear = false)
         {
             Debug.Assert(width > 0 && height > 0);
             _gd = gd;
@@ -261,7 +262,10 @@ namespace Veldrid.Vulkan
             _leaveOpen = leaveOpen;
 
             RefCount = new ResourceRefCount(this);
-            ClearIfRenderTarget();
+            if (!skipClear)
+            {
+                ClearIfRenderTarget();
+            }
         }
 
         private void ClearIfRenderTarget()
