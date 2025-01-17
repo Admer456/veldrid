@@ -869,6 +869,8 @@ namespace Veldrid.Vulkan
                 }
             }
 
+            // TODO: Optional extension API & filter utilities
+            requiredDeviceExtensions.Remove("VK_EXT_debug_marker");
             if (requiredDeviceExtensions.Count != 0)
             {
                 string missingList = string.Join(", ", requiredDeviceExtensions);
