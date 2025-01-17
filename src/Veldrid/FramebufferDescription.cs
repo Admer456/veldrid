@@ -20,6 +20,11 @@ namespace Veldrid
         public FramebufferAttachmentDescription[]? ColorTargets;
 
         /// <summary>
+        /// Multiview extension view masks.
+        /// </summary>
+        public uint[]? MultiviewMasks;
+
+        /// <summary>
         /// Constructs a new <see cref="FramebufferDescription"/>.
         /// </summary>
         /// <param name="depthTarget">The depth texture, which must have been created with

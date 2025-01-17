@@ -14,6 +14,12 @@ namespace Veldrid.Vulkan
 {
     public sealed unsafe class VkGraphicsDevice : GraphicsDevice
     {
+        public struct MultiviewSupportInfo
+        {
+            public uint MaxMultiviewCount;
+            public uint MaxMultiviewInstanceIndex;
+        }
+
         private static readonly FixedUtf8String s_name = "Veldrid-VkGraphicsDevice";
         private static readonly Lazy<bool> s_isSupported = new(CheckIsSupported, isThreadSafe: true);
 
@@ -73,6 +79,7 @@ namespace Veldrid.Vulkan
         public bool DebugMarkerEnabled => _debugMarkerEnabled;
         public string? DriverName => _driverName;
         public string? DriverInfo => _driverInfo;
+        public MultiviewSupportInfo? MultiviewSupport { get; private set; }
         public VkDeviceMemoryManager MemoryManager => _memoryManager;
         public VkDescriptorPoolManager DescriptorPoolManager => _descriptorPoolManager;
         public vkCmdDebugMarkerBeginEXT_t? MarkerBegin => _markerBegin;
@@ -786,6 +793,7 @@ namespace Veldrid.Vulkan
             bool hasBarycentricCoords = false;
             bool hasDedicatedAllocation = false;
             bool hasDriverProperties = false;
+            bool hasMultiviewProperties = false;
             IntPtr[] activeExtensions = new IntPtr[props.Length];
             uint activeExtensionCount = 0;
 
@@ -805,6 +813,11 @@ namespace Veldrid.Vulkan
 
                         requiredDeviceExtensions.Remove(extensionName);
                         _debugMarkerEnabled = true;
+                    }
+                    else if (extensionName == "VK_KHR_multiview")
+                    {
+                        requiredDeviceExtensions.Remove(extensionName);
+                        hasMultiviewProperties = true;
                     }
                     else if (extensionName == "VK_KHR_swapchain")
                     {
@@ -925,9 +938,15 @@ namespace Veldrid.Vulkan
             }
             if (_getPhysicalDeviceProperties2 != null && hasDriverProperties)
             {
+                VkPhysicalDeviceMultiviewProperties multiviewProps = new()
+                {
+                    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES
+                };
+
                 VkPhysicalDeviceDriverProperties driverProps = new()
                 {
-                    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES
+                    sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES,
+                    pNext = hasMultiviewProperties ? &multiviewProps : null
                 };
 
                 VkPhysicalDeviceProperties2 deviceProps = new()
@@ -944,6 +963,15 @@ namespace Veldrid.Vulkan
                 ApiVersion = new GraphicsApiVersion(conforming.major, conforming.minor, conforming.subminor, conforming.patch);
                 _driverName = driverName;
                 _driverInfo = driverInfo;
+
+                if (hasMultiviewProperties)
+                {
+                    MultiviewSupport = new()
+                    {
+                        MaxMultiviewCount = multiviewProps.maxMultiviewViewCount,
+                        MaxMultiviewInstanceIndex = multiviewProps.maxMultiviewInstanceIndex,
+                    };
+                }
             }
         }
 

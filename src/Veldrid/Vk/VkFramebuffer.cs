@@ -19,6 +19,7 @@ namespace Veldrid.Vulkan
         private readonly VkRenderPass _renderPassNoClear;
         private readonly VkRenderPass _renderPassClear;
         private readonly List<VkImageView> _attachmentViews = new();
+        private readonly uint[] _multiviewMasks;
         private string? _name;
 
         public override VulkanFramebuffer CurrentFramebuffer => _deviceFramebuffer;
@@ -125,6 +126,27 @@ namespace Veldrid.Vulkan
                 dependencyCount = 1,
                 pDependencies = &subpassDependency
             };
+
+            VkRenderPassMultiviewCreateInfo multiviewCi;
+
+            if (description.MultiviewMasks is not null)
+            {
+                _multiviewMasks = description.MultiviewMasks;
+
+                multiviewCi = new()
+                {
+                    sType = VkStructureType.VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO,
+                    pNext = null,
+                    subpassCount = 1,
+                    pViewMasks = (uint*)Unsafe.AsPointer(ref _multiviewMasks[0]),
+                    dependencyCount = 0,
+                    pViewOffsets = null,
+                    correlationMaskCount = 1,
+                    pCorrelationMasks = (uint*)Unsafe.AsPointer(ref _multiviewMasks[0])
+                };
+
+                renderPassCI.pNext = &multiviewCi;
+            }
 
             {
                 VkRenderPass renderPassNoClear;
