@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using TerraFX.Interop.Vulkan;
 using static TerraFX.Interop.Vulkan.VkAttachmentLoadOp;
 using static TerraFX.Interop.Vulkan.VkAttachmentStoreOp;
