@@ -3,7 +3,7 @@ using TerraFX.Interop.Vulkan;
 
 namespace Veldrid.Vulkan
 {
-    internal abstract class VkFramebufferBase : Framebuffer, IResourceRefCountTarget
+    public abstract class VkFramebufferBase : Framebuffer, IResourceRefCountTarget
     {
         public VkFramebufferBase(
             FramebufferAttachmentDescription? depthTexture,

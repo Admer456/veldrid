@@ -9,7 +9,7 @@ using static Veldrid.Vulkan.VulkanUtil;
 
 namespace Veldrid.Vulkan
 {
-    internal static unsafe class VkSurfaceUtil
+    public static unsafe class VkSurfaceUtil
     {
         public static string KHR_SURFACE_EXTENSION_NAME { get; } = "VK_KHR_surface";
         public static string KHR_WIN32_SURFACE_EXTENSION_NAME { get; } = "VK_KHR_win32_surface";

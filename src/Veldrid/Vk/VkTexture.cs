@@ -7,7 +7,7 @@ using VulkanBuffer = TerraFX.Interop.Vulkan.VkBuffer;
 
 namespace Veldrid.Vulkan
 {
-    internal sealed unsafe class VkTexture : Texture, IResourceRefCountTarget
+    public sealed unsafe class VkTexture : Texture, IResourceRefCountTarget
     {
         private readonly VkGraphicsDevice _gd;
         private readonly VkImage _optimalImage;
@@ -33,7 +33,7 @@ namespace Veldrid.Vulkan
         public ResourceRefCount RefCount { get; }
         public bool IsSwapchainTexture => _isSwapchainTexture;
 
-        internal VkTexture(VkGraphicsDevice gd, in TextureDescription description)
+        public VkTexture(VkGraphicsDevice gd, in TextureDescription description)
         {
             _gd = gd;
             Width = description.Width;
@@ -225,7 +225,7 @@ namespace Veldrid.Vulkan
         }
 
         // Used to construct Swapchain textures.
-        internal VkTexture(
+        public VkTexture(
             VkGraphicsDevice gd,
             uint width,
             uint height,

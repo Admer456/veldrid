@@ -2,7 +2,7 @@
 
 namespace Veldrid.Vulkan
 {
-    internal sealed class VkResourceFactory : ResourceFactory
+    public sealed class VkResourceFactory : ResourceFactory
     {
         private readonly VkGraphicsDevice _gd;
 

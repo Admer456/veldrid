@@ -1,6 +1,6 @@
 ﻿namespace Veldrid.Vulkan
 {
-    internal struct VkVersion
+    public struct VkVersion
     {
         public static uint API_VERSION_VARIANT(uint version) => (version) >> 29;
         public static uint API_VERSION_MAJOR(uint version) => (version >> 22) & 0x7FU;

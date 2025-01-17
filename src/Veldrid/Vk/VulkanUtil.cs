@@ -8,7 +8,7 @@ using static TerraFX.Interop.Vulkan.VkPipelineStageFlags;
 
 namespace Veldrid.Vulkan
 {
-    internal unsafe static class VulkanUtil
+    public unsafe static class VulkanUtil
     {
         public static void CheckResult(VkResult result)
         {

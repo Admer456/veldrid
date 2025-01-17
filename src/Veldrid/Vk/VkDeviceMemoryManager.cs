@@ -14,7 +14,7 @@ using VulkanBuffer = TerraFX.Interop.Vulkan.VkBuffer;
 
 namespace Veldrid.Vulkan
 {
-    internal sealed unsafe class VkDeviceMemoryManager : IDisposable
+    public sealed unsafe class VkDeviceMemoryManager : IDisposable
     {
         private readonly VkDevice _device;
         private readonly VkPhysicalDevice _physicalDevice;
@@ -617,7 +617,7 @@ namespace Veldrid.Vulkan
     }
 
     [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
-    internal unsafe struct VkMemoryBlock : IEquatable<VkMemoryBlock>
+    public unsafe struct VkMemoryBlock : IEquatable<VkMemoryBlock>
     {
         private readonly uint MemoryType;
         public readonly VkDeviceMemory DeviceMemory;

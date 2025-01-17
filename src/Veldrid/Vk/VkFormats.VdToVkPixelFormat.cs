@@ -4,9 +4,9 @@ using static TerraFX.Interop.Vulkan.VkFormat;
 
 namespace Veldrid.Vulkan
 {
-    internal static partial class VkFormats
+    public static partial class VkFormats
     {
-        internal static VkFormat VdToVkPixelFormat(PixelFormat format, TextureUsage usage)
+        public static VkFormat VdToVkPixelFormat(PixelFormat format, TextureUsage usage)
         {
             bool toDepthFormat = FormatHelpers.IsDepthFormatPreferred(format, usage);
 

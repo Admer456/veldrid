@@ -11,7 +11,7 @@ using VulkanFramebuffer = TerraFX.Interop.Vulkan.VkFramebuffer;
 
 namespace Veldrid.Vulkan
 {
-    internal sealed unsafe class VkFramebuffer : VkFramebufferBase
+    public sealed unsafe class VkFramebuffer : VkFramebufferBase
     {
         private readonly VkGraphicsDevice _gd;
         private readonly VulkanFramebuffer _deviceFramebuffer;

@@ -4,7 +4,7 @@ using VulkanFence = TerraFX.Interop.Vulkan.VkFence;
 
 namespace Veldrid.Vulkan
 {
-    internal sealed unsafe class VkFence : Fence, IResourceRefCountTarget
+    public sealed unsafe class VkFence : Fence, IResourceRefCountTarget
     {
         private readonly VkGraphicsDevice _gd;
         private VulkanFence _fence;

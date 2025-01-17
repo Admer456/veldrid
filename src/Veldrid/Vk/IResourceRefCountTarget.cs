@@ -1,6 +1,6 @@
 ﻿namespace Veldrid.Vulkan
 {
-    internal interface IResourceRefCountTarget
+    public interface IResourceRefCountTarget
     {
         void RefZeroed();
     }

@@ -8,7 +8,7 @@ namespace Veldrid.Vulkan
     /// A super-dangerous stack-only list which can hold up to 256 bytes of blittable data.
     /// </summary>
     /// <typeparam name="T">The type of element held in the list. Must be blittable.</typeparam>
-    internal unsafe struct StackList<T> where T : struct
+    public unsafe struct StackList<T> where T : struct
     {
         public const int CapacityInBytes = 256;
 

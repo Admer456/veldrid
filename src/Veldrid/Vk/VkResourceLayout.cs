@@ -4,7 +4,7 @@ using static Veldrid.Vulkan.VulkanUtil;
 
 namespace Veldrid.Vulkan
 {
-    internal sealed unsafe class VkResourceLayout : ResourceLayout, IResourceRefCountTarget
+    public sealed unsafe class VkResourceLayout : ResourceLayout, IResourceRefCountTarget
     {
         private readonly VkGraphicsDevice _gd;
         private readonly VkDescriptorSetLayout _dsl;

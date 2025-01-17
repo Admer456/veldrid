@@ -13,7 +13,7 @@ using VulkanBuffer = TerraFX.Interop.Vulkan.VkBuffer;
 
 namespace Veldrid.Vulkan
 {
-    internal sealed unsafe class VkCommandList : CommandList, IResourceRefCountTarget
+    public sealed unsafe class VkCommandList : CommandList, IResourceRefCountTarget
     {
         private readonly VkGraphicsDevice _gd;
         private VkCommandPool _pool;
@@ -1615,7 +1615,7 @@ namespace Veldrid.Vulkan
             }
         }
 
-        internal readonly struct StagingResourceInfo
+        public readonly struct StagingResourceInfo
         {
             public List<VkBuffer> BuffersUsed { get; }
             public List<VkTexture> TexturesUsed { get; }

@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 
 namespace Veldrid.Vulkan
 {
-    internal sealed unsafe class FixedUtf8String : IDisposable
+    public sealed unsafe class FixedUtf8String : IDisposable
     {
         private IntPtr _handle;
         private int _numBytes;

@@ -4,7 +4,7 @@ using static TerraFX.Interop.Vulkan.Vulkan;
 
 namespace Veldrid.Vulkan
 {
-    internal sealed unsafe class VkResourceSet : ResourceSet, IResourceRefCountTarget
+    public sealed unsafe class VkResourceSet : ResourceSet, IResourceRefCountTarget
     {
         private readonly VkGraphicsDevice _gd;
         private readonly DescriptorResourceCounts _descriptorCounts;
