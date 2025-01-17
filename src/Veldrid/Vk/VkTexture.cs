@@ -257,9 +257,12 @@ namespace Veldrid.Vulkan
             SampleCount = sampleCount;
             VkSampleCount = VkFormats.VdToVkSampleCount(sampleCount);
             _optimalImage = existingImage;
-            _imageLayouts = new[] { VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED };
             _isSwapchainTexture = isSwapchainTexture;
             _leaveOpen = leaveOpen;
+
+            uint subresourceCount = MipLevels * _actualImageArrayLayers * Depth;
+            _imageLayouts = new VkImageLayout[subresourceCount];
+            _imageLayouts.AsSpan().Fill( VkImageLayout.VK_IMAGE_LAYOUT_UNDEFINED );
 
             RefCount = new ResourceRefCount(this);
             if (!skipClear)
