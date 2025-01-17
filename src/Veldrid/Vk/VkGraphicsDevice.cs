@@ -662,6 +662,8 @@ namespace Veldrid.Vulkan
             _debugCallbackHandle = handle;
         }
 
+        public static bool ShouldThrowOnValidationError = true;
+
         [UnmanagedCallersOnly]
         private static uint DebugCallback(
             VkDebugReportFlagsEXT flags,
@@ -688,7 +690,7 @@ namespace Veldrid.Vulkan
 
             string fullMessage = $"[{debugReportFlags}] ({objectType}) {message}";
 
-            if (debugReportFlags == VkDebugReportFlagsEXT.VK_DEBUG_REPORT_ERROR_BIT_EXT)
+            if (debugReportFlags == VkDebugReportFlagsEXT.VK_DEBUG_REPORT_ERROR_BIT_EXT && ShouldThrowOnValidationError)
             {
                 throw new VeldridException("A Vulkan validation error was encountered: " + fullMessage);
             }
